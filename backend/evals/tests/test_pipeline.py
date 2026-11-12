@@ -90,3 +90,25 @@ async def test_subset_scores_only_what_ran() -> None:
     s = subset(D, out)
     assert set(s.alerts) == set(s.labels) == {"EV-A003"} and set(s.probes) == {"EV-P001"}
     assert s.contexts == {"EV-A003": D.contexts["EV-A003"]} and s.ksor_mitre_ids == D.ksor_mitre_ids
+
+
+class LedgerFake(Fake):
+    """Reports $0 per item, but the ledger grows $0.30 per item (usage lost on an exception)."""
+
+    def __init__(self) -> None:
+        super().__init__(cost=0.0)
+        self.total = 5.0  # earlier runs already spent something
+
+    def ledger_total(self) -> float:
+        return self.total
+
+    async def run_alert(self, alert_id: str, alert: WazuhAlert, context: str) -> AlertPrediction:
+        self.total += 0.30
+        return await super().run_alert(alert_id, alert, context)
+
+
+async def test_cap_uses_the_ledger_when_predictions_undercount() -> None:
+    out = await run_all(D, LedgerFake(), Selection(only="alerts"), max_usd=1.0)
+    assert out.stopped_at_cap and len(out.alerts) == 4  # stopped by the ledger, not by $0 usage
+    assert out.reported_usd == 0.0 and out.ledger_usd == pytest.approx(1.2)
+    assert out.spent_usd == pytest.approx(1.2)

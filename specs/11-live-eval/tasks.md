@@ -19,3 +19,12 @@ Legend: [ ] todo · [~] in progress · [x] done · ⬆ = commit + push (run the 
 |---|---|---|---|
 | [x] T11-09 | `WebSource.url`: change `HttpUrl` to a str with a pattern. OpenAI strict output rejects `format: uri` (HTTP 400). Add a schema-format regression test (output types + tool params). | pilot | `test_live_schemas` passes |
 | [x] T11-10 | `BaseServiceSettings`: set `env_ignore_empty=True`, so that a blank `AGENT_MODEL_DEFAULT=` falls back to the default (the empty value gave model `` and HTTP 404). Add a test. | pilot | test passes |
+
+**R3 plan (`R3-pilot-findings-plan.txt`), approved by Naveed on 2026-11-12. Q1: one retry. Q2: keep gpt-5-nano.**
+
+| ID | Task | Satisfies | Done when |
+|---|---|---|---|
+| [x] T11-11 | `flows`: on an `AgentsException`, return status `error` and keep the usage. `run_all` caps on max(reported, ledger delta); the report shows both. | F1 | tests pass |
+| [x] T11-12 | An `invalid_final_output` error handler captures the rule messages (never the values). `run_triage` then makes ONE corrective retry. | F2 | tests pass |
+| [x] T11-13 | Prompts: no handoff sentence as the answer; a fixed text when web search is unavailable. The deterministic review blocks handoff sentences. | F3 | tests pass |
+| [x] T11-14 | Real pilot numbers go into VERIFY §7 and ADR-0010. | — | docs done |

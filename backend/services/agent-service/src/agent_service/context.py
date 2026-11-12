@@ -30,3 +30,5 @@ class WorkerContext:
     tickets: list[str] = field(default_factory=list)
     suggestions: list[str] = field(default_factory=list)
     events: list[str] = field(default_factory=list)  # audit-style breadcrumbs (masked only)
+    # Rule messages (never values) when the final output broke a model rule (feature 11, T11-12).
+    output_problems: list[str] = field(default_factory=list)
