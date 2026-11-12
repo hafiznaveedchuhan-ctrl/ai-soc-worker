@@ -24,7 +24,7 @@ Push rhythm (Naveed, 2026-11-12, PHR-0004): commit + push this feature branch af
 | [x] | T01-12 | Makefile (all targets + stubs), `.env.example`, `demo_masking.py`, `tests/test_repo_hygiene.py` | FR-01-04, 05, S8 | backend/ | `make help`, `make demo-masking` OK | T01-09, T01-11 |
 | [x] | T01-13 | CI skeleton `.github/workflows/ci.yml` (python + secrets jobs) | FR-01-06 | .github/ | YAML valid; runs on the push | T01-12 |
 | | ⬆ | **checkpoint 4: commit + push** → CI runs on the branch | | | CI green | T01-13 |
-| [ ] | T01-14 | Docs: LEARNING.md, CAREER-MAP.md (row 01), architecture.md (Mermaid), soc-shared README, root README | FR-01-50…53 | backend/docs/, READMEs | Naveed can follow it | T01-13 |
-| [ ] | T01-15 | Run the full gate (`make lint typecheck test cov demo-masking`), paste the REAL output into VERIFY.md §4, update progress.md + PHR | S1–S8 | VERIFY.md, progress.md | all gates green | T01-14 |
+| [x] | T01-14 | Docs: LEARNING.md, CAREER-MAP.md (row 01), architecture.md (Mermaid), soc-shared README, root README | FR-01-50…53 | backend/docs/, READMEs | Naveed can follow it | T01-13 |
+| [x] | T01-15 | Run the full gate (`make lint typecheck test cov demo-masking`), paste the REAL output into VERIFY.md §4, update progress.md + PHR | S1–S8 | VERIFY.md, progress.md | all gates green | T01-14 |
 | | ⬆ | **checkpoint 5: commit + push**; open the PR `feat/01-foundation → main` (draft) | | | PR link given to Naveed | T01-15 |
 | | **STOP** | **Naveed runs VERIFY.md and says verified → he merges the PR.** After the merge: never push to this branch again. | | | merged | T01-15 |
