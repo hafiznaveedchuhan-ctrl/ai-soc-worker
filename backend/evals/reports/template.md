@@ -6,6 +6,7 @@
 | Git commit | $git_sha |
 | Prediction source | $source |
 | Models | $models |
+| Run note | $note |
 | Dataset | $dataset_sizes |
 | Labels verified by Naveed | $verified |
 

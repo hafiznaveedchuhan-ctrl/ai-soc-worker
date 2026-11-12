@@ -9,7 +9,7 @@ TESTS := packages/soc-shared/tests packages/ksor-client/tests evals/tests tests 
 
 .PHONY: help dev test cov lint fmt typecheck check eval-dry eval-stats eval-review eval-recordings \
         demo-masking demo-mcp demo-enrichment-live serve-wazuh-mcp serve-enrichment-mcp clean \
-        eval demo-handbook demo-ask demo-triage docker-build up down trivy demo-up
+        eval eval-pilot eval-estimate demo-handbook demo-ask demo-triage docker-build up down trivy demo-up
 
 help: ## Show this list
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*## "}{printf "  %-15s %s\n", $$1, $$2}'
@@ -78,8 +78,13 @@ clean: ## Remove caches and reports
 	rm -rf .pytest_cache .mypy_cache .ruff_cache .hypothesis htmlcov .coverage coverage.xml
 
 # ----- later features (stubs: they say which feature adds them) -----
-eval: ## PAID eval run (needs Naveed's "haan"; pipeline from features 05/06)
-	$(UV) run python -m soc_evals paid
+eval: ## PAID full eval (40 alerts + 95 probes, real flows): make eval CONFIRM=haan [MAX_USD=1.50]
+	CONFIRM=$(CONFIRM) $(UV) run python -m soc_evals paid --yes-paid --max-usd $(or $(MAX_USD),1.50)
+eval-pilot: ## PAID pilot (2 alerts + 4 probes, ~$$0.02): make eval-pilot CONFIRM=haan
+	CONFIRM=$(CONFIRM) $(UV) run python -m soc_evals paid --yes-paid --max-usd 0.10 \
+	  --ids EV-A003,EV-A034,EV-P001,EV-P021,EV-P056,EV-P086
+eval-estimate: ## FREE offline cost estimate of a full paid run
+	$(UV) run python -m soc_evals estimate
 demo-handbook: ## LIVE handbook search (T1: npm run serve in ../handbook): make demo-handbook Q="..." CONFIRM=haan
 	CONFIRM=$(CONFIRM) $(UV) run python scripts/demo_handbook.py "$(Q)"
 demo-ask: ## /ask flow (FAKE, free). LIVE: make demo-ask LIVE=1 CONFIRM=haan Q="..."

@@ -1882,11 +1882,19 @@ name = "soc-evals"
 version = "0.1.0"
 source = { editable = "evals" }
 dependencies = [
+    { name = "agent-service" },
+    { name = "enrichment-mcp" },
     { name = "soc-shared" },
+    { name = "wazuh-mcp" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "soc-shared", editable = "packages/soc-shared" }]
+requires-dist = [
+    { name = "agent-service", editable = "services/agent-service" },
+    { name = "enrichment-mcp", editable = "services/enrichment-mcp" },
+    { name = "soc-shared", editable = "packages/soc-shared" },
+    { name = "wazuh-mcp", editable = "services/wazuh-mcp" },
+]
 
 [[package]]
 name = "soc-shared"
