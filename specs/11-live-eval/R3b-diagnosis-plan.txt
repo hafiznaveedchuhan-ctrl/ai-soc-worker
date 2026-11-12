@@ -1,0 +1,40 @@
+PLAN — R3b: make the pilot failures diagnosable (feature 11 follow-up)
+Status: DRAFT — waiting for Naveed's "approved". Branch: fix/11-r3-fixes (PR #17). 2026-11-12, session 2.
+
+======================================================================
+1. PILOT 3 RESULT (commit 6c9f838, with the R3 fixes)
+======================================================================
+Spend: $0.0257, and the report and the ledger agree, so F1 is fixed. Ledger total: $0.0393 of $9.
+
+  Item     Result                                                        calls  $       time
+  EV-A003  ok, but needs_info / no escalation (label: TP, esc 4)         13     0.0119  303 s
+  EV-A034  invalid note twice, even after the retry                      15     0.0114  567 s
+  EV-P001  DECLINE (exact text)                                          0      0       0 s
+  EV-P021  BLOCKED by the output review (pilot 2: handoff sentence)      4      0.0012  28 s
+  EV-P056  BLOCKED by the output review (pilot 2: ok, right page)        4      0.0011  24 s
+  EV-P086  DECLINE (exact text)                                          1      0.0002  5 s
+
+The reasons (which rule A034 broke, and why P021/P056 were blocked) are in FlowResult.events.
+The eval does NOT store them, so they are unknown. P056 may be a REGRESSION from my T11-13
+change (the new prompt sentence or HANDOFF_RE); without the events this cannot be proven.
+
+======================================================================
+2. PROPOSED (free, offline)
+======================================================================
+T11-15  Store `events` (masked breadcrumbs: guardrail problems, rule messages, approvals) in
+        AlertPrediction / ProbePrediction (new optional field; regenerate the dry recordings).
+        Show them in the report's Failures table. Test: blocked/error items carry their reason.
+T11-16  Offline check of the P056 regression: run the T11-13 checks against the pilot-2 P056
+        answer text (stored in recordings/paid/…927a298-probes.jsonl). If HANDOFF_RE or the
+        review blocks it → fix and test. No API call.
+T11-17  Commit the pilot-3 recordings + report.
+STOP → then ONE small diagnostic re-run of only EV-A034, EV-P021, EV-P056 ("haan", ~$0.015)
+to read the real reasons. Only after that: decide whether this is code (fix) or model quality
+(constitution VI.2: an ADR to upgrade ONE agent, e.g. triage → gpt-5-mini, ~5x the price).
+
+======================================================================
+3. HONEST NOTE
+======================================================================
+gpt-5-nano is very variable on /triage: 13–15 calls, 5–9 min and 23–25k output tokens per
+alert. A full run of 40 alerts could take 3–6 h and ~$0.50. The $1.50 cap still holds. A full
+run (R5) is NOT recommended until the 3 items above pass.
