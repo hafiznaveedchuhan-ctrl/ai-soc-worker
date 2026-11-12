@@ -6,7 +6,7 @@ then open the files it names and run the command it shows.
 Contents: [1 Big picture](#1-big-picture) · [2 Feature 01 — foundation](#2-feature-01--foundation) ·
 [3 Masking](#3-how-masking-works) · [4 Data contracts](#4-the-data-contracts-models) ·
 [5 Tests](#5-how-the-tests-work) · [6 CI pipeline](#6-ci-pipeline-githubworkflowsciyml) ·
-[7 Later features](#7-later-features-placeholders) · [8 Evals](#8-feature-02--evals-first) · [9 MCP services](#9-feature-03--mcp-services) · [10 Handbook client](#10-feature-04--handbook-client) · [11 Agents + guardrails](#11-features-05-06--agents-and-guardrails)
+[7 Later features](#7-later-features-placeholders) · [8 Evals](#8-feature-02--evals-first) · [9 MCP services](#9-feature-03--mcp-services) · [10 Handbook client](#10-feature-04--handbook-client) · [11 Agents + guardrails](#11-features-05-06--agents-and-guardrails) · [12 Gateway + Docker](#12-features-07-09--internal-api-gateway-docker) · [13 CI/CD](#13-feature-10--cicd)
 
 ---
 
@@ -303,3 +303,63 @@ tests caught: they were first uncounted).
 ### The four guardrail kinds (`guardrails.py`)
 input (scope) · output (reviewer) · tool input (query / IP token / web query) · tool output (web content / reputation schema). Hosted tools and
 `as_tool` skip tool guardrails, so every external call is our own `@function_tool`.
+
+---
+
+## 12. Features 07-09 — internal API, gateway, Docker
+
+**agent-service API (07):** internal FastAPI; `X-Internal-Token` checked with `hmac.compare_digest` (constant time); SSE via
+`fastapi.sse.EventSourceResponse` (events `delta`, `final`, `done`). **api-gateway (08):** the only public service and the only DB user;
+`/ask` streams `status → final → done`; stored text is masked, responses are unmasked for the analyst; `mask_map` values are Fernet-encrypted.
+Two real bugs the tests found: an HTTPException raised inside an SSE generator never becomes an HTTP status (checks moved to a dependency that
+runs before the stream), and Alembic's `fileConfig()` disables every existing logger unless `disable_existing_loggers=False`.
+
+### Dockerfile, line by line (`services/<svc>/Dockerfile`, build context = `backend/`)
+| Line | Why |
+|---|---|
+| `# syntax=docker/dockerfile:1` | enables BuildKit features such as `--mount=type=cache` |
+| `FROM ghcr.io/astral-sh/uv:0.12.6-python3.12-trixie-slim AS builder` | stage 1 = an image that already has uv + Python 3.12 (exact version pinned; the bookworm tag does not exist for 0.12.6, so trixie = Debian 13) |
+| `ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=0` | precompile .pyc (faster start), copy files instead of hard links (works across layers), use the image's Python |
+| `WORKDIR /app` · `COPY . .` | the whole workspace is copied so uv can read every member's pyproject; `.dockerignore` removes `.env`, tests, caches, docs |
+| `RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-editable --package <svc>` | install exactly `uv.lock`, without dev tools, as real (non-editable) packages, only what this service needs; the cache mount makes rebuilds fast and is not stored in the image |
+| `FROM python:3.12-slim-trixie AS runtime` | stage 2 = a small image without uv or build tools; same Python path as the builder, so the venv works |
+| `RUN groupadd … useradd … --uid 10001 … mkdir -p /data` | a non-root user; `/data` for volumes (ledger, sessions, SQLite) |
+| `COPY --from=builder --chown=app:app /app/.venv /app/.venv` | only the finished venv crosses over — source trees and caches stay behind |
+| wazuh-mcp: `COPY evals/data/alerts /app/fixtures` | the 40 lab alerts it serves in fixture mode |
+| `ENV PATH=/app/.venv/bin:$PATH PYTHONUNBUFFERED=1 …` + per-service `ENV` | the venv first; logs appear at once; bind 0.0.0.0 inside the container; data paths under `/data` |
+| `USER app` | everything below runs without root |
+| `EXPOSE <port>` | documentation of the port (8101, 8102, 8100, 8000) |
+| `HEALTHCHECK … CMD python -c …` | Docker marks the container unhealthy if `/health` (HTTP services) or the TCP port (MCP servers) stops answering |
+| `CMD ["python", "-m", "<package>"]` | exec form: the Python process is PID 1 and receives stop signals |
+
+### compose.yaml
+One network `soc`; **only the gateway publishes a port**, bound to `127.0.0.1:8000`. Every container is `read_only` with a `tmpfs` /tmp and
+`no-new-privileges`. Each service gets ONLY its own variables (the AbuseIPDB key only reaches enrichment-mcp; the DB URL and the mask-map key only
+the gateway). The MCP servers set `MCP_ALLOWED_HOSTS` because mcp 2.3.0 enables DNS-rebinding protection automatically only on 127.0.0.1.
+The handbook runs on the host: containers use `host.docker.internal` (`extra_hosts: host-gateway`); the handbook must listen on an address the Docker
+host can reach (its default 127.0.0.1 inside WSL is not reachable from Docker Desktop containers — set `HANDBOOK_MCP_URL_DOCKER` accordingly).
+Commands: `make docker-build` · `make up` · `make demo-up` · `make down` · `make trivy`. Images: `ai-soc/<svc>:<git-sha>`.
+
+---
+
+## 13. Feature 10 — CI/CD
+
+### `ci.yml` (every PR + every push to `feat/**`)
+| Job / step | What | Why |
+|---|---|---|
+| `changes` + `dorny/paths-filter` | lists which services changed (a change under `packages/` or `uv.lock` counts for all) | only changed images are built — saves minutes |
+| `python` · setup-uv · `uv sync --frozen` | the exact locked environment | same versions as on your laptop |
+| ruff check / format --check · `make typecheck` | style and types | catch mistakes before review |
+| pytest + coverage ≥ 90% | ~300 offline tests (no LLM, no network) | the main quality gate |
+| masking demo · MCP demo · agent demos (fake) | the demos you run are also proven in CI | demos never rot |
+| `make eval-dry` | datasets valid + scorer correct | the evals-first gate |
+| `secrets` · gitleaks over full history | no key in any commit | a leaked key is permanent |
+| `images` (matrix of changed services) · buildx · build-push-action `load: true` | builds `ai-soc/<svc>:<sha>`, not pushed | proves every Dockerfile builds |
+| Trivy (`severity: CRITICAL`, `ignore-unfixed`) | scans the built image | blocks images with fixable critical CVEs |
+All actions are pinned by commit SHA (a moved tag cannot inject code); `permissions: contents: read` (least privilege).
+
+### `release.yml` — manual (`workflow_dispatch`) and only with input `confirm=haan` on `main`
+Logs in to ghcr.io with the built-in `GITHUB_TOKEN` (`packages: write`), pushes `ghcr.io/<owner>/ai-soc-<svc>:<sha>`. The first push is your decision.
+
+### `deploy.yml` — Phase 8 placeholder (`if: false`)
+Azure Container Registry + Container Apps with OIDC; needs paid-service decisions, Postgres sessions and real Auth0 first.
