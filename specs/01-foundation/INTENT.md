@@ -1,5 +1,5 @@
 # INTENT — 01 foundation
-Status: **draft — awaiting approval by human:naveed** · Plan of record: `../00-final-plan.txt` §11
+Status: **approved** by human:naveed 2026-11-12 ("approved for all points" — Q1: do not mask file hashes; Q2: ip_context carries the private range) · Plan of record: `../00-final-plan.txt` §11
 
 ## Goal
 Build a clean, testable skeleton that every later feature builds on: a uv workspace under `backend/`, a shared package

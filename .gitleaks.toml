@@ -1,0 +1,11 @@
+# gitleaks configuration — default rules + a narrow allow-list.
+title = "soc-worker gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Masking tokens and documentation-only values used in tests and docs"
+regexes = [
+  '''<(IP|USER|HOST|EMAIL)-\d+>''',
+]

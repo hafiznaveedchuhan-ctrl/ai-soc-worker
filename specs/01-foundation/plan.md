@@ -1,5 +1,5 @@
 # plan — 01 foundation
-Status: **draft — awaiting approval** · Spec: `./spec.md`
+Status: **approved** (human:naveed, 2026-11-12) · Spec: `./spec.md`
 
 ## 1. Approach
 Tests-first for `soc-shared` (models → masking → settings), then tooling (Makefile, `.env.example`, CI, gitleaks),
@@ -56,13 +56,15 @@ CREATE  .gitleaks.toml
 ## 4. Libraries + docs to check (in T01-01, before any code; results recorded here)
 | Library | Purpose | Doc source | Checked | Confirmed |
 |---|---|---|---|---|
-| uv (0.12.x) workspaces, dependency-groups, `uv_build` | workspace | docs.astral.sh/uv (Context7) | — | — |
-| pydantic 2.x | models, validators, StrEnum, HttpUrl | docs.pydantic.dev (Context7) | — | — |
-| pydantic-settings 2.x | BaseSettings, SettingsConfigDict, SecretStr | Context7 | — | — |
-| hypothesis | property tests (`st.ip_addresses`, `st.emails`) | Context7 | — | — |
-| pytest, pytest-cov, pytest-socket (or a conftest guard) | tests, no-network | Context7 | — | — |
-| ruff, mypy | lint, types | Context7 | — | — |
-| astral-sh/setup-uv, gitleaks action/binary | CI | GitHub README (official) | — | — |
+| uv 0.12.6 | workspace | Context7 /astral-sh/uv (workspaces.md, add.rs) | 2026-11-12 | non-project root with `[tool.uv.workspace]`; members need a pyproject.toml (so `services/*` is added per service); `{ workspace = true }` only in `[tool.uv.sources]`, not inside `[dependency-groups]`; `uv add --dev` works on a non-project root |
+| pydantic 2.14.3 | models | Context7 + installed version | 2026-11-12 | v2 API (`ConfigDict`, `field_validator`, `model_validator`) |
+| pydantic-settings 2.16.2 | settings | Context7 /pydantic/pydantic-settings | 2026-11-12 | `SettingsConfigDict(env_prefix, env_file=None default, extra)`; `SecretStr` |
+| pytest 9.2 · pytest-socket 0.8.1 · pytest-cov 7.1 · hypothesis 6.170 | tests | package docs | 2026-11-12 | `--disable-socket` blocks sockets (`SocketBlockedError`) |
+| ruff 0.17.4 · mypy 2.4.1 | lint, types | package docs | 2026-11-12 | `pydantic.mypy` plugin |
+| astral-sh/setup-uv · gitleaks | CI | checked in T01-13 | — | — |
+
+Deviation: workspace members are `packages/*` only for now (uv requires a pyproject.toml in every matched dir).
+Python is pinned by `backend/.python-version` = 3.12 (without it uv picked 3.13).
 
 ## 5. Test strategy
 - Unit tests per FR; **property tests** (hypothesis): random IPv4/IPv6/emails embedded in random text → no leak,

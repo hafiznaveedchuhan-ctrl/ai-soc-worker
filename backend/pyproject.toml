@@ -1,0 +1,54 @@
+# Workspace root (ADR-0001). It is NOT a package itself ("virtual" root): it only lists the
+# members, the shared dev tools, and the tool configuration used by every member.
+
+[tool.uv.workspace]
+# services/* is added member by member as services are created (features 03, 07, 08):
+# uv requires every matched directory to contain a pyproject.toml.
+members = ["packages/*"]
+
+[tool.uv.sources]
+soc-shared = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "hypothesis>=6.170.15",
+    "mypy>=2.4.1",
+    "pytest>=9.2.0",
+    "pytest-cov>=7.1.0",
+    "pytest-socket>=0.8.1",
+    "ruff>=0.17.4",
+    "soc-shared",
+]
+
+# ---------------------------------------------------------------- ruff
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "SIM", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101"]   # assert is how pytest works
+
+# ---------------------------------------------------------------- mypy
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+mypy_path = "packages/soc-shared/src"
+explicit_package_bases = true
+
+# ---------------------------------------------------------------- pytest
+[tool.pytest.ini_options]
+testpaths = ["packages", "tests"]
+addopts = "-q --disable-socket --import-mode=importlib"
+
+# ---------------------------------------------------------------- coverage
+[tool.coverage.run]
+source = ["soc_shared"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true

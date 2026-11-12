@@ -1,4 +1,4 @@
-# Python-generated files
+# Python
 __pycache__/
 *.py[oc]
 build/
@@ -8,4 +8,25 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Secrets — never commit (constitution Art. III)
 .env
+**/.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Tool caches and reports
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.hypothesis/
+
+# Local state
+*.sqlite
+*.sqlite3
+*.db

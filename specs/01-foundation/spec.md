@@ -1,5 +1,5 @@
 # spec — 01 foundation
-Status: **draft — awaiting approval** · Intent: `./INTENT.md` · Plan of record: `../00-final-plan.txt` §11
+Status: **approved** (human:naveed, 2026-11-12) · Intent: `./INTENT.md` · Plan of record: `../00-final-plan.txt` §11
 Sources (read only): `../handbook/knowledge/rules-map/data-handling.md`, `.../invariants.md`, `.../escalation-policy.md`,
 `../handbook/knowledge/triage-note/note-template.md`.
 
