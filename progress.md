@@ -6,7 +6,7 @@ Only the "READ ME FIRST" box below is rewritten in place, every session.
 
 > ## READ ME FIRST (rewritten every session — last: session 1, 2026-11-12T06:20Z)
 > **Where we are:** Feature 01 (foundation) is **implemented and VERIFY.md is filled** → **waiting for Naveed to verify**.
-> Branch `feat/01-foundation` is pushed, CI is green, and a **draft PR to main** is open (link in the session-1 block).
+> Branch `feat/01-foundation` is pushed, CI is green, and **draft PR #2 to main** is open: https://github.com/hafiznaveedchuhan-ctrl/ai-soc-worker/pull/2.
 > **Next step:** Naveed runs `specs/01-foundation/VERIFY.md` → says "verified" → marks the PR ready and merges it himself →
 > Claude starts **feature 02 (evals-first)**: a NEW branch `feat/02-evals-first` from the updated main → INTENT (draft in plan v2 §12) → spec → plan → tasks → STOP.
 > **Blocked on Naveed:** verify 01 + merge the PR · rotate the old OpenAI/Anthropic keys · set the $10 OpenAI limit.
@@ -126,7 +126,7 @@ Only the "READ ME FIRST" box below is rewritten in place, every session.
 
 ## Exact next step for the next session
 1. Read this block and run `git status` and `git branch --show-current`.
-2. If Naveed has verified and merged PR #1 (feature 01): `git checkout main && git pull`, then `git checkout -b feat/02-evals-first`.
+2. If Naveed has verified and merged PR #2 (feature 01, https://github.com/hafiznaveedchuhan-ctrl/ai-soc-worker/pull/2): `git checkout main && git pull`, then `git checkout -b feat/02-evals-first`.
    Copy the templates into `specs/02-evals-first/` and write INTENT.md from plan v2 §12. Write spec.md, plan.md and tasks.md (also draft ADR-0009 on data sources and licences). STOP for approval.
 3. If he has not verified yet: help him run VERIFY.md and fix anything he finds, on `feat/01-foundation`. This is allowed only while its PR is unmerged.
 
