@@ -16,6 +16,7 @@ Never put secrets, keys or unmasked personal data in a PHR.
 | [0007](PHR-0007-env-and-feature02-docs.md) | 2026-11-12 | spec | 02 | .env created/filled safely; PR #2 merged; feature 02 docs |
 | [0008](PHR-0008-feature02-implementation.md) | 2026-11-12 | implement | 02 | 02 approved; scorer, probes, 30 alerts; PR #3 merged mid-feature → part2 branch |
 | [0009](PHR-0009-all-haan-otrf-ruleset.md) | 2026-11-12 | implement → verify | 02 | "all haan": ruleset + OTRF → 40 alerts; detection gap; VERIFY filled |
+| [0010](PHR-0010-feature03-mcp-services.md) | 2026-11-12 | spec → implement → verify | 03 | Blanket approval; wazuh-mcp + enrichment-mcp; httpx log leak fixed |
 
 ## Template
 ```markdown

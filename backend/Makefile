@@ -8,7 +8,7 @@ SRC := packages/soc-shared/src evals/src evals/scripts scripts services/wazuh-mc
 TESTS := packages/soc-shared/tests evals/tests tests services/wazuh-mcp/tests services/enrichment-mcp/tests
 
 .PHONY: help dev test cov lint fmt typecheck check eval-dry eval-stats eval-review eval-recordings \
-        demo-masking clean \
+        demo-masking demo-mcp demo-enrichment-live serve-wazuh-mcp serve-enrichment-mcp clean \
         eval demo-handbook demo-ask demo-triage docker-build up down
 
 help: ## Show this list
@@ -52,6 +52,18 @@ eval-recordings: ## Rebuild alerts/labels/probes + dry recordings from the build
 
 demo-masking: ## Show one lab alert before/after masking + leak check
 	$(UV) run python scripts/demo_masking.py
+
+demo-mcp: ## Call wazuh-mcp + enrichment-mcp in memory (free, AbuseIPDB mocked)
+	$(UV) run python scripts/demo_mcp.py
+
+demo-enrichment-live: ## ONE real AbuseIPDB call: make demo-enrichment-live IP=x.x.x.x CONFIRM=haan
+	CONFIRM=$(CONFIRM) $(UV) run python scripts/demo_mcp.py --live $(IP)
+
+serve-wazuh-mcp: ## Serve wazuh-mcp at http://127.0.0.1:8101/mcp (fixture mode)
+	$(UV) run python -m wazuh_mcp
+
+serve-enrichment-mcp: ## Serve enrichment-mcp at http://127.0.0.1:8102/mcp (reads ABUSEIPDB_API_KEY from env)
+	$(UV) run python -m enrichment_mcp
 
 clean: ## Remove caches and reports
 	rm -rf .pytest_cache .mypy_cache .ruff_cache .hypothesis htmlcov .coverage coverage.xml

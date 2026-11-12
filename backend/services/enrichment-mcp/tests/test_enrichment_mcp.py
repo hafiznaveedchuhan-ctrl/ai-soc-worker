@@ -180,7 +180,8 @@ async def test_tool_surface() -> None:
 
 
 async def test_logs_never_contain_the_ip(caplog: pytest.LogCaptureFixture) -> None:
-    caplog.set_level(logging.INFO, logger="enrichment_mcp")
+    caplog.set_level(logging.INFO)  # ALL loggers, including httpx (its URLs hold the IP)
+    logging.getLogger("httpx").setLevel(logging.WARNING)  # what the server module sets at import
     fake = Fake(lambda r: httpx.Response(200, json=GOOD))
     await call(build_server(settings(), fake.client()), PUBLIC)
     await call(build_server(settings(), fake.client()), "10.0.0.5")
