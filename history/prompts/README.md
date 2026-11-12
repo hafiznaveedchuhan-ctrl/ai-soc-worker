@@ -1,0 +1,26 @@
+# PHR — Prompt History Records
+
+One file per significant prompt from Naveed (an intent, approval, amendment, decision, correction or bug report).
+Name: `PHR-NNNN-<slug>.md` (4 digits, never reused). PHRs are append-only; a correction is a new PHR.
+Never put secrets, keys or unmasked personal data in a PHR.
+
+## Index
+| PHR | Date | Stage | Feature | Title |
+|---|---|---|---|---|
+| [0001](PHR-0001-phase3-intent.md) | 2026-11-12 | intent | all | Phase 3 intent: soc-worker backend |
+| [0002](PHR-0002-summary-and-d01.md) | 2026-11-12 | clarify | 02/06 | Read-first summary, Roman Urdu recap, D-01 scope decision |
+| [0003](PHR-0003-plan-v2-amendments.md) | 2026-11-12 | plan | all | Plan v1 approved with amendments A1–A7 → v2 |
+| [0004](PHR-0004-v2-approved-sdd-push-rhythm.md) | 2026-11-12 | plan → spec | 01 | v2 approved; strong SDD docs; push every 3–4 steps |
+
+## Template
+```markdown
+# PHR-NNNN — <title>
+- Date: <ISO> · Session: <n> · Stage: intent | clarify | plan | spec | tasks | implement | verify | fix | retro
+- Feature: NN · Branch: <branch> · Model: <model id>
+
+## Prompt (verbatim if short; faithfully condensed if long — mark which)
+## Response summary (what Claude did)
+## Files touched
+## Decisions / outcomes (link ADRs)
+## Follow-ups (who acts)
+```

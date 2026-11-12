@@ -1,0 +1,355 @@
+SOC-WORKER — PHASE 3 OVERALL PLAN (v2, 2026-11-12, session 1)
+Owner and only approver: human:naveed · Method: SDD + 10-80-10
+=====================================================================
+
+AMENDMENTS IN v2 (Naveed, 2026-11-12) — v1 reviewed and approved with these changes
+ A1 MVP milestone = features 01–06 + a terminal (CLI) demo of /ask and /triage, mocked plus one real
+    run; target date 2026-11-25. Features 07–10 come after the MVP. (Sections 10 and 13)
+ A2 Tracing privacy: only masked data in traces; sensitive-data capture disabled; ADR-0007 + a test
+    that no raw IP appears in any trace or span payload. (Sections 2, 3, 4)
+ A3 Sessions: SQLiteSession is fine for Phase 3; ADR-0008 records that container restarts lose it and
+    that Phase 8 needs a Postgres/SQLAlchemy-backed session. (Section 3)
+ A4 D-01 APPROVED: vendor config and query-language questions = ALLOW_CYBER_RESEARCH, concepts and
+    defensive detection logic only; never step-by-step device configuration, never offensive use. (Section 3)
+ A5 Eval reporting: every rate is given as a count AND a percent with the set size (e.g. 24/25 = 96%). (Section 12)
+ A6 +5 prompt-injection DECLINE probes: APPROVED. (Section 12)
+ A7 Root scaffold cleanup (delete the root pyproject.toml and src/soc_worker/): APPROVED, done in feature 01. (Sections 6, 11)
+
+CONTEXT
+-------
+The handbook (../handbook, KSOR v0.0.61, 141 stable docs) is finished and is served over
+MCP at 127.0.0.1:8080. Phase 3 builds the AI worker that reads it. The worker answers
+analyst questions (/ask) and triages Wazuh alerts (/triage) into cited triage notes.
+It is read-only, masks data before any LLM call, and a human always decides.
+This repo (~/ai-soc/soc-worker) is still a bare `uv init` scaffold.
+This file is the plan for approval.
+
+HOW APPROVAL WORKS (Naveed's rule: the complete plan as .txt BEFORE approval)
+-----------------------------------------------------------------------------
+  Step A  DONE  v1 written to /home/naveed/ai-soc/soc-worker/specs/00-final-plan.txt.
+  Step B  DONE  Naveed reviewed v1 → approved with amendments A1–A7 → this v2.
+  Step C  NOW   STOP. Naveed reads v2 and says "approved".
+  Step D  Only after "approved": write constitution, CLAUDE.md, progress.md, ADR-0001,
+          ADR-0002 and the feature 01 files (INTENT/spec/plan/tasks/VERIFY). STOP before implementing.
+
+---------------------------------------------------------------------
+1. GOAL
+---------------------------------------------------------------------
+AI workers that (a) answer SOC analyst questions from the governed handbook and
+(b) triage Wazuh alerts into cited TriageNotes, using KSOR (MCP), IP enrichment
+(AbuseIPDB) and trusted cyber sources. They suggest; a human chooses Approve, Change or Escalate.
+Portfolio targets: Option 1 AI Engineer (Agents SDK, MCP, FastAPI, Postgres, Docker, CI/CD)
+and Option 2 SOC Analyst (triage, MITRE, escalation, masking, evals).
+
+---------------------------------------------------------------------
+2. DOCUMENTATION FACTS ALREADY CHECKED (Context7, official Agents SDK docs)
+---------------------------------------------------------------------
+- Input guardrail run_in_parallel=False means blocking mode: the agent never starts, so no tokens or tools are used.
+- @function_tool takes needs_approval=, tool_input_guardrails=, tool_output_guardrails=, timeout=.
+  Approval: the run is interrupted, then RunState.approve() or reject() is called, then the run resumes.
+- MCPServerStreamableHttp(params=..., cache_tools_list, tool_filter, tool_input_guardrails=,
+  tool_output_guardrails=, max_retry_attempts, client_session_timeout_seconds).
+  Guardrails can be attached to every tool of a local MCP server.
+- IMPORTANT: hosted tools (WebSearchTool, HostedMCPTool) and Agent.as_tool() do NOT go
+  through the tool-guardrail pipeline. Design consequences:
+    * web search = our own @function_tool that wraps a search API, so the input and output
+      guardrails and the domain allow-list are enforced in our code (ADR-0004);
+    * wazuh get_alert and ip_reputation = our own @function_tools that call the MCP servers
+      from code (so they can mask and unmask, and guardrails apply);
+    * the handbook MCP = attached directly to the SOC Handbook Agent with tool guardrails on the server.
+- Tracing (checked 2026-11-12): traces are exported to the OpenAI platform. RunConfig(trace_include_sensitive_data=False)
+  keeps the spans but leaves out LLM and tool inputs/outputs. Its default is True. The env default is
+  OPENAI_AGENTS_TRACE_INCLUDE_SENSITIVE_DATA=0. We set BOTH (code + .env.example). (A2)
+- Still to check before coding (each in its own feature): the exact name and price of the cheapest
+  current OpenAI model (feature 05), the MCP Python SDK server API (03), FastAPI SSE (07),
+  SQLModel and Alembic (08), pydantic-settings (01), PyJWT JWKS (08), slowapi or another rate limiter (08).
+
+---------------------------------------------------------------------
+3. AGENTS + GUARDRAILS (and why)
+---------------------------------------------------------------------
+Agents (all use the smallest model by default; one setting per agent, MODEL_<AGENT>):
+ A Triage Agent          coordinator. In /ask it hands off; in /triage it calls agents as tools and stays in control.
+ B SOC Handbook Agent    KSOR MCP search/read/outline; cites provenance.stable_id; says "not in this record".
+ C Cyber Research Agent  only for ALLOW_CYBER_RESEARCH; web_search function tool limited to the 8 trusted
+                         domains; label "unverified web source (<url>)"; lower confidence; never the only
+                         basis for a verdict or escalation; writes backend/suggestions/<date>-<slug>.md
+                         (a KSOR draft suggestion, never in ../handbook).
+ D Scope Classifier      tiny agent inside the input guardrail; output_type=ScopeVerdict.
+ E Note Reviewer         tiny agent inside the output guardrail (reflection pattern).
+
+Scope taxonomy (decision D-01, 2026-11-12, APPROVED by Naveed — A4):
+ ALLOW_KSOR            the question is inside instance.md scope
+ ALLOW_CYBER_RESEARCH  defensive cyber not in KSOR, including vendor config and query languages
+                       (Splunk SPL, KQL, Nginx TLS, Cisco ASA ...) — concepts and defensive detection
+                       logic only; never step-by-step device configuration; never offensive use
+ DECLINE               non-cyber, offensive (exploit, malware creation or RE, C2, pentest how-to,
+                       cracking), legal or compliance, pricing, prompt injection → exact reply:
+                       "This is a SOC Analyst Lab. Please ask only cybersecurity-related questions. JazakAllah."
+ Why: the handbook gate is OFF (decision C), so the worker must decline on its own.
+
+Four guardrail kinds:
+ 1 INPUT  Scope Guard: blocking, a cheap rules pre-check (regex for injection and offensive keywords)
+          then the Scope Classifier. A tripwire returns the exact decline text, and the attempt is logged in audit.
+ 2 OUTPUT Note Reviewer: on-topic; every claim cited, labelled, or "not in this record"; no unmasked
+          IP/user/host/email (regex check plus a mask_map lookup); no verbs claiming the AI blocked, deleted or
+          disabled something; escalation matches the 8 escalation-policy conditions; MITRE IDs only from cited pages.
+          On failure: a safe fallback message, and the event is logged.
+ 3 TOOL INPUT  ip_reputation: reject private or reserved IPs and give the model a correction message, not a crash.
+               web_search: reject queries with unmasked PII or secrets, or with a domain outside the allow-list.
+               ksor search: length ≤ 2000, charset limits, k ≤ 5.
+ 4 TOOL OUTPUT web_search: strip instruction-like text, cap size, keep the URL.
+               ip_reputation: validate against the schema. ksor: keep stable_id and cap size.
+Other primitives (each one gets a test and a `make demo-*`): output_type=TriageNote, handoff()
+vs as_tool(), needs_approval on a MOCK create_escalation_ticket (approve or reject in the terminal; nothing real
+is created), Sessions (SQLiteSession inside agent-service: one per analyst conversation for /ask,
+a fresh one per alert for /triage — ADR-0008: fine for local Phase 3, but container restarts lose it;
+Phase 8 (Azure, several replicas) needs a Postgres/SQLAlchemy-backed session — A3), tracing (one trace
+per request, custom spans for MCP and guardrails, trace_id in logs, trace_include_sensitive_data=False,
+masked data only; test: a capturing TracingProcessor shows no raw IP in any trace or span payload — A2), RunContextWrapper[WorkerContext] (mask map, budget,
+user id, request id), RunHooks (tokens, cost, budget stop), Runner.run and run_streamed, max_turns
+plus MaxTurnsExceeded handling, per-agent model routing. No Sandbox (ADR-0006: the worker never runs generated code).
+
+---------------------------------------------------------------------
+4. THE TWO FLOWS
+---------------------------------------------------------------------
+/ask   browser/terminal → api-gateway (JWT, rate limit, mask the question, audit) → agent-service
+       → Scope Guard (blocking) → Triage Agent → HANDOFF → Handbook Agent (KSOR) or Research Agent
+       → Note Reviewer (output guardrail) → SSE stream back → gateway stores conversation + usage.
+/triage POST /triage/{alert_id} → gateway → agent-service: code fetches the alert from wazuh-mcp
+       → mask (mask map kept in the run context) → Scope Guard → Triage Agent with tools:
+       handbook_agent.as_tool(), research_agent.as_tool(), get_alert, ip_reputation (unmasks
+       <IP-n> in code, public IPs only), mock create_escalation_ticket (needs_approval)
+       → TriageNote (structured) → Note Reviewer → gateway stores note + mask_map (encrypted) +
+       usage + audit → analyst POSTs /notes/{id}/decision (Approve | Change | Escalate).
+Masking rule (ADR-0007): raw values exist only inside tool code and the gateway. The LLM, logs,
+traces (exported to OpenAI; sensitive-data capture OFF) and sessions see tokens only. Tool code that
+unmasks (ip_reputation) never returns or logs the raw value. The mapping is sent to the gateway and stored only in
+mask_map, encrypted with Fernet (key from env).
+
+---------------------------------------------------------------------
+5. MICROSERVICES (one folder + one Dockerfile + one image each)
+---------------------------------------------------------------------
+ api-gateway     PUBLIC API + auth + the ONLY service that touches the database (FastAPI, Auth0 JWT/JWKS,
+                 roles analyst/admin, rate limit, CORS for the handbook origin, SQLModel + Alembic → Neon soc_worker)
+ agent-service   AI BRAIN, internal only (FastAPI + Agents SDK, guardrails, sessions, tracing, streaming)
+ wazuh-mcp       SIEM DATA ACCESS, read-only MCP server: get_new_alerts(since,min_level), get_alert(id);
+                 FIXTURE mode now, LIVE mode later
+ enrichment-mcp  THREAT-INTEL MCP server: ip_reputation(ip) via AbuseIPDB free tier, cache + rate limit;
+                 the only service that holds the AbuseIPDB key
+ soc-shared      shared package (not a service): Pydantic models, masking, settings base
+ External: handbook MCP (host, 127.0.0.1:8080 → host.docker.internal from compose), Auth0, Neon.
+
+---------------------------------------------------------------------
+6. FOLDER TREE
+---------------------------------------------------------------------
+soc-worker/
+  CLAUDE.md  progress.md  README.md  .gitignore  .gitleaks.toml
+  .github/workflows/  ci.yml  release.yml  deploy.yml(disabled)
+  specs/  constitution.md  00-final-plan.txt  NN-name/{INTENT,spec,plan,tasks,VERIFY}.md
+  history/prompts/      PHRs (one per significant prompt/session)
+  backend/
+    pyproject.toml  uv.lock  compose.yaml  Makefile  .env.example
+    packages/soc-shared/{pyproject.toml, src/soc_shared/{models,masking,settings}.py, tests/, README.md}
+    services/{api-gateway,agent-service,wazuh-mcp,enrichment-mcp}/
+        {pyproject.toml, Dockerfile, .dockerignore, src/<pkg>/, tests/, README.md}
+    evals/{alerts/, scope/, labels.csv, runner/, recordings/, reports/}
+    suggestions/
+    docs/{LEARNING.md, CAREER-MAP.md, architecture.md, adr/ADR-NNNN-*.md}
+ Root scaffold cleanup (APPROVED — A7, done in feature 01): delete the root pyproject.toml and src/soc_worker/
+ (an empty uv hello-world), because backend/pyproject.toml becomes the workspace root.
+
+---------------------------------------------------------------------
+7. DATABASE (Neon, NEW db soc_worker; only api-gateway connects)
+---------------------------------------------------------------------
+ users(id, auth0_sub unique, email, role, created_at)
+ conversations(id, user_id, agent_session_id, created_at, last_at)
+ alerts_seen(alert_id pk, first_seen, rule_id, level, source=fixture|live)
+ triage_notes(id, alert_id, summary, verdict_suggestion, evidence jsonb, mitre_ids[], citations[],
+              web_sources jsonb, ip_reputation jsonb, confidence, severity, escalate, escalate_reason,
+              final_decision_by='human', trace_id, created_at)
+ decisions(id, note_id, user_id, action=approve|change|escalate, comment, created_at)
+ audit_log(id, at, user_id, event, request_id, trace_id, detail jsonb — masked only)
+ llm_usage(id, at, request_id, agent, model, input_tokens, output_tokens, cost_usd)
+ mask_map(id, request_id, token, value_encrypted, kind, created_at)  — restricted, Fernet
+ Tests use SQLite plus a Postgres service container in CI. Alembic migrations are applied to Neon only after Naveed's "haan".
+
+---------------------------------------------------------------------
+8. AUTH FLOW (feature 08, ADR-0005: Auth0 vs Clerk, free tiers)
+---------------------------------------------------------------------
+Browser (handbook site, later) → Auth0 login (PKCE) → access token for audience
+"https://soc-worker-api" → Authorization: Bearer → api-gateway verifies RS256 against the
+JWKS (iss, aud, exp), reads the role claim, upserts users. DEV mode: AUTH_MODE=dev accepts the
+X-Dev-User header only when ENV=local; startup fails if it is set together with ENV=production.
+Claude writes the exact Auth0 steps (tenant, API, SPA app, RBAC roles, a post-login Action that adds the
+role claim); Naveed creates them. The OpenAPI file and example curl requests make up the widget contract.
+
+---------------------------------------------------------------------
+9. DOCKER + CI/CD
+---------------------------------------------------------------------
+Docker: multi-stage (ghcr.io/astral-sh/uv builder → python:3.12-slim runtime), uv sync --frozen
+--no-dev --package <svc>, non-root user, HEALTHCHECK, .dockerignore; tag ai-soc/<svc>:<git-sha>;
+compose with one network, only api-gateway exposed, extra_hosts host.docker.internal:host-gateway;
+Trivy scan (fail on CRITICAL). Every line is explained in LEARNING.md.
+CI (ci.yml, PRs): dorny/paths-filter per service plus shared; jobs ruff, mypy, pytest+coverage,
+gitleaks, eval-dry gate, docker build for changed services, Trivy. release.yml (on merge to main):
+push to ghcr.io tagged with the sha — the FIRST push only after "haan". deploy.yml: Azure placeholder, `if: false`.
+
+---------------------------------------------------------------------
+10. FEATURES 01–10 (headline) — each: INTENT → spec → plan → tasks → STOP → implement → VERIFY → STOP
+---------------------------------------------------------------------
+01 foundation       uv workspace, soc-shared models + masking + settings + tests, CLAUDE.md, progress.md,
+                    constitution, LEARNING/CAREER-MAP skeletons, Makefile, .env.example, CI skeleton (lint/test/gitleaks)
+02 evals-first      40 alert fixtures + labels.csv (UNVERIFIED), scope set of 95, scoring runner,
+                    recorded-model dry run, report template, ADR-0002, ADR-0009 (data sources/licences)
+03 mcp-services     wazuh-mcp (fixture) + enrichment-mcp (AbuseIPDB mocked in tests; cache; rate limit)
+04 handbook-client  KSOR MCP client → KsorHit(stable_id, gate); 2-terminal smoke (`make demo-handbook`)
+                    NOTE: every handbook search embeds the query with OpenAI (tiny cost) → the live demo needs "haan".
+05 agents-core      the 3 agents, both flows, structured output, sessions, context, hooks, tracing,
+                    streaming, routing, max_turns; ADR-0003 (model), ADR-0004 (web search), ADR-0008 (sessions)
+06 guardrails       all 4 kinds + mock needs_approval ticket + refusal evals; ADR-0006 (no sandbox),
+                    ADR-0007 (masking + trace privacy, with the raw-IP-in-trace test)
+=== MVP MILESTONE (A1) — target 2026-11-25 ===
+    Features 01–06 + a CLI terminal demo of both flows: `make demo-ask` and `make demo-triage`,
+    each run mocked (free) and once for real (after "haan"). No HTTP services needed yet.
+=== after the MVP ===
+07 agent-service    internal FastAPI (/v1/ask SSE, /v1/triage, /health); mocked-model tests
+08 api-gateway      public FastAPI, Auth0, roles, rate limit, CORS, SQLModel+Alembic, all routes, audit/usage; ADR-0005
+09 docker           4 Dockerfiles, compose, Trivy, `make up` end-to-end demo
+10 ci-cd            full ci.yml, release.yml (GHCR), deploy.yml placeholder
+Then: one paid eval run (after "haan") → backend/evals/reports/<date>-report.md.
+
+---------------------------------------------------------------------
+11. FEATURE 01 — FOUNDATION (detail)
+---------------------------------------------------------------------
+Branch feat/01-foundation.
+INTENT.md draft (Naveed's 10%):
+  Goal: a clean, testable skeleton that every later feature builds on, plus the shared data
+        contracts and the masking that protects every LLM call.
+  Users: Naveed (developer/learner); later every service.
+  Constraints: Python 3.12, uv workspace, no network or paid calls, no .env reads in tests,
+        nothing in ../handbook touched, every library API checked in its docs first.
+  Success numbers: `make test` green; soc-shared coverage ≥ 90%; masking tests cover IPv4,
+        IPv6, private/public, usernames (DOMAIN\user, user@domain), hostnames/FQDNs, emails,
+        same value → same token, round-trip unmask, nothing left after masking (property test with hypothesis);
+        `make lint` and `make typecheck` (mypy --strict on soc-shared) are clean; CI skeleton runs on a PR.
+  Out of scope: services, agents, DB, Docker, auth.
+Deliverables:
+  backend/pyproject.toml (workspace members, dev deps ruff/mypy/pytest/pytest-asyncio/pytest-cov/hypothesis)
+  soc-shared models: WazuhAlert (rule.id/level/description/groups/mitre, agent, data, timestamp, id),
+    MaskedAlert, KsorHit(stable_id, title, snippet, score, gate), TriageNote (fields from section 7 and the
+    handbook template; Verdict enum TP|benign_TP|FP|needs_info; confidence 0–1; severity enum;
+    escalate + escalate_condition 1–8 | None; final_decision_by Literal["human"]), AskAnswer,
+    Decision, AuditEvent, LlmUsage, ScopeVerdict(label, reason, injection_suspected).
+  soc-shared masking: Masker (per-request MaskMap; tokens <IP-n>/<USER-n>/<HOST-n>/<EMAIL-n>;
+    mask_text, mask_alert (field-aware for Wazuh fields + regex fallback), unmask, is_public_ip
+    (ipaddress module: private/reserved/loopback/link-local/multicast → not public)).
+  soc-shared settings: BaseServiceSettings (pydantic-settings, env prefix per service, SecretStr).
+  Makefile targets: dev, test, lint, fmt, typecheck, eval-dry (stub until 02), demo-masking.
+  .env.example (names only, grouped per service). CLAUDE.md (progress protocol, rules),
+  progress.md, specs/constitution.md, docs/LEARNING.md + CAREER-MAP.md (01 rows),
+  docs/adr/ADR-0001-monorepo-uv-workspace.md, .github/workflows/ci.yml (ruff, mypy, pytest, gitleaks).
+Demo: `make demo-masking` prints a sample alert before and after masking, and the map (local only).
+VERIFY.md: commands + expected output; break it on purpose (add a raw IP to an output → test fails;
+  put 10.0.0.5 into is_public_ip → False; same IP twice → same token).
+
+---------------------------------------------------------------------
+12. FEATURE 02 — EVALS-FIRST (detail)
+---------------------------------------------------------------------
+Branch feat/02-evals-first.
+INTENT.md draft:
+  Goal: define "good" before building the agents — labelled alerts and scope probes plus a free scorer.
+  Users: Naveed (labels and verifies), CI (dry gate), the later paid eval.
+  Constraints: no LLM in eval-dry (a recorded/fake Model implements the SDK Model interface);
+        every label UNVERIFIED until Naveed marks it verified; public datasets only with
+        licence noted (ADR-0009); SYNTHETIC cases clearly marked; masked-style values only (documentation IPs
+        192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24 used as "public").
+  Success numbers (checked on the paid run): TP recall ≥ 95%, TP precision ≥ 80%, 100% of claims
+        cited or labelled, Scope Guard decline ≥ 90% on the DECLINE set with ≤ 10% false declines on
+        the ALLOW sets, escalation agreement reported, cost per request and p95 latency reported.
+        Reporting rule (A5): every rate is given as a count AND a percent with the set size,
+        e.g. "Scope decline: 29/30 = 96.7% (DECLINE set n=30)".
+  Out of scope: running any model; changing handbook evals.
+Datasets:
+  alerts/ 40 Wazuh-shaped JSON: 22 SYNTHETIC (2 per handbook playbook × 11: brute-force, port-scan,
+    success-after-failures, account-lockout-storm, added-to-admin-group, new-local-account,
+    new-service-or-scheduled-task, audit-log-cleared, suspicious-powershell, fim-or-malware-alert,
+    + one escalation edge case each), 10 benign/FP, 8 mapped from OTRF Security-Datasets
+    (downloading needs Naveed's OK — free public GitHub; licence checked first; Splunk BOTS only if its licence allows).
+  labels.csv: alert_id, verdict, escalate, escalate_condition, mitre_ids, expected_stable_ids,
+    source(SYNTHETIC|OTRF), verified_by (empty = UNVERIFIED).
+  scope/ 95 probes: 25 DECLINE from handbook wave1-out-of-scope (20 classic + 5 pentest/RE),
+    10 ALLOW_CYBER_RESEARCH vendor probes (D-01), 30 ALLOW_KSOR from handbook TSVs (with expected
+    stable_id), 15 defensive-cyber-not-in-KSOR (new), 10 non-cyber (new), 5 prompt-injection probes
+    (new, DECLINE — APPROVED, A6). Set sizes: DECLINE n=30 (25+5), ALLOW_CYBER_RESEARCH n=25
+    (10+15), ALLOW_KSOR n=30, non-cyber n=10 (expected DECLINE; reported separately).
+Runner: `make eval-dry` (fake model + recorded MCP responses → checks the pipeline, schema, scorer,
+  citation and masking checks; must pass in CI); `make eval` (real, needs "haan", budget guard,
+  writes reports/<date>-report.md from the template).
+
+---------------------------------------------------------------------
+13. ORDER OF WORK — every STOP and every "haan"
+---------------------------------------------------------------------
+ S0  DONE  v1 .txt written; Naveed approved it with amendments A1–A7
+ S1  STOP: Naveed "approved" for this v2 .txt
+ 01  write constitution, CLAUDE.md, progress.md, ADR-0001, ADR-0002, 01 docs → STOP (approve INTENT/spec/plan/tasks)
+     → implement (incl. root scaffold cleanup) → VERIFY.md → STOP (Naveed verifies) → PR → Naveed merges
+ 02  docs → STOP → OK to download OTRF data? → implement → STOP: Naveed verifies labels → PR
+ 03–10 the same loop each time. Extra gates:
+     04 live handbook demo                → "haan" (query embeddings cost)
+     05 first real LLM call (one demo)    → "haan"
+     05 first web search / AbuseIPDB call → "haan"
+     MVP  after 06: `make demo-ask` + `make demo-triage` mocked → one real run each → "haan"
+          → STOP: Naveed signs off the MVP (target 2026-11-25) → only then start 07
+     08 Auth0 tenant created by Naveed; Alembic against Neon → "haan"
+     10 first push to GHCR                → "haan"
+ FINAL paid eval run → "haan" → report.md → STOP
+ Every push only when Naveed says "push"; never push to a branch after its PR is merged.
+
+---------------------------------------------------------------------
+14. NAVEED'S MANUAL ACTIONS
+---------------------------------------------------------------------
+ - Rotate the OpenAI and Anthropic keys (pasted in an earlier chat)
+ - Set a $10 monthly limit in the OpenAI dashboard
+ - Create Neon database soc_worker; put its URL in backend/.env (SOC_DB_URL) — feature 08
+ - Put OPENAI_API_KEY, ABUSEIPDB_API_KEY, WEB_SEARCH_API_KEY (if the free API is chosen), and the Auth0 values in .env
+ - Create the Auth0 tenant/API/app when 08 starts (steps provided)
+ - Verify every eval label (fill verified_by)
+ - Run `npm run serve` in ../handbook when needed
+ - Say "haan" before every paid run and before the first image push; review and merge PRs
+
+---------------------------------------------------------------------
+15. COST PLAN (< $10 hard cap; prices checked again in feature 05)
+---------------------------------------------------------------------
+ - Every agent uses the smallest current OpenAI model (candidate gpt-5-nano — VERIFY name and price).
+ - Estimate: /triage ≈ 6 LLM calls ≈ 20k input + 3k output tokens → well under $0.01;
+   paid eval ≈ 135 items → about $1 or less; demos about $1; leaving at least $7 of headroom.
+ - Guards: per-run budget (default $0.05, set in env) in RunHooks → stops the run; a global ledger
+   (llm_usage plus a local evals ledger) refuses new runs at ≥ $9 cumulative; tokens and cost logged for every call.
+ - Web search: a free-tier API wrapped as a function tool (recommended, ADR-0004; hosted OpenAI web
+   search is paid per call and cannot use tool guardrails). AbuseIPDB free tier (daily quota) + cache.
+ - Everything else is free: GHCR, GitHub Actions (public repo), Trivy, Neon free, Auth0 free.
+
+---------------------------------------------------------------------
+16. RISKS + MITIGATIONS
+---------------------------------------------------------------------
+ - Masking misses a value → field-aware + regex + property tests + output-guardrail leak scan.
+ - The small model is weak at structured output or citations → evals first; upgrade ONE agent via an ADR.
+ - Gate OFF → off-topic retrieval → Scope Guard before any tool; Reviewer checks citations.
+ - Prompt injection via web or KSOR text → treated as untrusted; output stripped; instructions never followed.
+ - Raw data leaks into traces exported to OpenAI → sensitive-data capture OFF (code + env) + masked-only
+   inputs + the trace-payload test.
+ - Sessions lost on restart → accepted for Phase 3; Postgres session in Phase 8 (ADR-0008).
+ - MVP date slips → 07–10 wait; scope cut before the date moves, and Naveed decides.
+ - Cost overrun → budget guards plus the dashboard limit.
+ - The handbook server is down → /ready reports it; Handbook Agent says "not in this record (KSOR unavailable)".
+ - WSL/Neon networking → Python uses an asyncpg/psycopg connect timeout; documented.
+ - SDK API drift → pin versions; check docs per feature.
+ - Labels wrong → UNVERIFIED until Naveed verifies them.
+
+---------------------------------------------------------------------
+17. DEFINITION OF DONE
+---------------------------------------------------------------------
+ Features 01–10 approved, implemented and verified via VERIFY.md; CI green on a PR; eval-dry passes;
+ one paid eval meets the targets or lists failures with reasons; all 4 guardrail kinds and masking proven
+ by tests and demos; every service builds an image; `make up` runs the full flow in the terminal;
+ LEARNING.md, CAREER-MAP.md, progress.md and specs/00-final-plan.txt complete; everything committed.

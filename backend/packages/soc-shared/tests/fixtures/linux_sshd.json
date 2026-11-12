@@ -1,0 +1,17 @@
+{
+  "id": "1731390100.200002",
+  "timestamp": "2026-11-12T03:16:40.002+0000",
+  "rule": {
+    "id": "5760",
+    "level": 5,
+    "description": "sshd: authentication failed.",
+    "groups": ["syslog", "sshd", "authentication_failed"],
+    "mitre": {"id": ["T1110.001"], "tactic": ["Credential Access"], "technique": ["Password Guessing"]}
+  },
+  "agent": {"id": "005", "name": "lab-srv02", "ip": "192.168.56.20"},
+  "predecoder": {"hostname": "lab-srv02", "program_name": "sshd", "timestamp": "Nov 12 03:16:40"},
+  "decoder": {"name": "sshd", "parent": "sshd"},
+  "location": "/var/log/auth.log",
+  "data": {"srcip": "198.51.100.77", "srcport": "40122", "dstuser": "root"},
+  "full_log": "Nov 12 03:16:40 lab-srv02 sshd[2211]: Failed password for root from 198.51.100.77 port 40122 ssh2"
+}

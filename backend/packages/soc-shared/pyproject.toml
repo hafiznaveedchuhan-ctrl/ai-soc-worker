@@ -1,0 +1,14 @@
+[project]
+name = "soc-shared"
+version = "0.1.0"
+description = "Shared data contracts, masking engine and settings base for the soc-worker services"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.14.3",
+    "pydantic-settings>=2.16.2",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.6,<0.13.0"]
+build-backend = "uv_build"
