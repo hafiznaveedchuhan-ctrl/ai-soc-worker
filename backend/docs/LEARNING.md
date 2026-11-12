@@ -363,3 +363,20 @@ Logs in to ghcr.io with the built-in `GITHUB_TOKEN` (`packages: write`), pushes 
 
 ### `deploy.yml` — Phase 8 placeholder (`if: false`)
 Azure Container Registry + Container Apps with OIDC; needs paid-service decisions, Postgres sessions and real Auth0 first.
+
+## 14. Feature 11 — the live eval runner
+- **One pipeline interface, two drivers.** `soc_evals.pipeline.run_all` only knows a `Pipeline` protocol (`run_alert` and `run_probe`):
+  - the tests drive it with a fake;
+  - `soc_evals.live.AgentPipeline` drives the real `agent_service.flows`.
+  
+  This keeps scoring, selection and the cost cap testable without any agent code.
+- **Same flows, scripted models.** `AgentPipeline` with `build_offline` (ScriptedModel) runs the REAL Runner, guardrails, masking and approvals for $0. Only the model is fake.
+- **Money guards in layers.** There are four:
+  - the typed confirmation (`--yes-paid` + `CONFIRM=haan`);
+  - the free pre-flight;
+  - the run-wide cap;
+  - the per-run budget and the global ledger.
+  
+  The cap is checked BEFORE each item, so one item can overshoot by at most its own per-run budget ($0.05).
+- **Score what ran.** A pilot or a capped run is scored on `subset(data, outcome)`. The report then says "partial k/n" instead of counting the missing items as failures.
+- **Lesson (incident).** `gh pr list --head B --state merged` exits 0 even when it finds a merged PR. Chaining it with `&&` checks nothing. The guard must test the OUTPUT: `test -z "$(gh pr list --head B --state merged)"`.
