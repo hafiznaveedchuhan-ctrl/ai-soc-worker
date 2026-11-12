@@ -4,8 +4,8 @@
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 UV := uv
-SRC := packages/soc-shared/src packages/ksor-client/src evals/src evals/scripts scripts services/wazuh-mcp/src services/enrichment-mcp/src services/agent-service/src
-TESTS := packages/soc-shared/tests packages/ksor-client/tests evals/tests tests services/wazuh-mcp/tests services/enrichment-mcp/tests services/agent-service/tests
+SRC := packages/soc-shared/src packages/ksor-client/src evals/src evals/scripts scripts services/wazuh-mcp/src services/enrichment-mcp/src services/agent-service/src services/api-gateway/src
+TESTS := packages/soc-shared/tests packages/ksor-client/tests evals/tests tests services/wazuh-mcp/tests services/enrichment-mcp/tests services/agent-service/tests services/api-gateway/tests
 
 .PHONY: help dev test cov lint fmt typecheck check eval-dry eval-stats eval-review eval-recordings \
         demo-masking demo-mcp demo-enrichment-live serve-wazuh-mcp serve-enrichment-mcp clean \
@@ -58,6 +58,15 @@ demo-mcp: ## Call wazuh-mcp + enrichment-mcp in memory (free, AbuseIPDB mocked)
 
 demo-enrichment-live: ## ONE real AbuseIPDB call: make demo-enrichment-live IP=x.x.x.x CONFIRM=haan
 	CONFIRM=$(CONFIRM) $(UV) run python scripts/demo_mcp.py --live $(IP)
+
+serve-agent: ## Serve agent-service (internal API :8100, REAL models — paid)
+	$(UV) run python -m agent_service
+
+serve-gateway: ## Serve api-gateway (public API :8000; dev auth by default)
+	$(UV) run python -m api_gateway
+
+db-upgrade: ## Apply Alembic migrations to SOC_DB_URL from .env (Neon) — needs CONFIRM=haan
+	CONFIRM=$(CONFIRM) $(UV) run python scripts/db_upgrade.py
 
 serve-wazuh-mcp: ## Serve wazuh-mcp at http://127.0.0.1:8101/mcp (fixture mode)
 	$(UV) run python -m wazuh_mcp

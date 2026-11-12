@@ -11,12 +11,14 @@ soc-shared = { workspace = true }
 soc-evals = { workspace = true }
 ksor-client = { workspace = true }
 agent-service = { workspace = true }
+api-gateway = { workspace = true }
 wazuh-mcp = { workspace = true }
 enrichment-mcp = { workspace = true }
 
 [dependency-groups]
 dev = [
     "agent-service",
+    "api-gateway",
     "enrichment-mcp",
     "ksor-client",
     "soc-evals",
@@ -40,6 +42,10 @@ select = ["E", "F", "I", "B", "UP", "S", "SIM", "RUF"]
 # The handbook template uses the en dash (–) and em dash (—) on purpose.
 allowed-confusables = ["–", "—"]
 
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI dependency markers in defaults are the documented pattern
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Header", "fastapi.Query"]
+
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["S101", "S104", "S105", "S106"]   # asserts; IP and "token" literals are test data
 "evals/scripts/build_alerts.py" = ["E501", "S108"]
@@ -48,14 +54,17 @@ allowed-confusables = ["–", "—"]
 "services/agent-service/src/agent_service/guardrails.py" = ["E501"]
 "services/agent-service/src/agent_service/testing.py" = ["E501"]
 "services/agent-service/tests/**" = ["S101", "E501"]
-"scripts/demo_agents.py" = ["E501"]  # long data lines; /tmp paths are alert DATA
+"scripts/demo_agents.py" = ["E501"]
+"services/api-gateway/tests/**" = ["S101", "S105", "S106", "E501"]
+"services/api-gateway/migrations/**" = ["E501", "E402", "UP", "I", "RUF", "F401"]  # long data lines; /tmp paths are alert DATA
 
 # ---------------------------------------------------------------- mypy
 [tool.mypy]
+exclude = ["services/api-gateway/migrations/"]
 python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
-mypy_path = "packages/soc-shared/src:packages/ksor-client/src:evals/src:services/agent-service/src:services/wazuh-mcp/src:services/enrichment-mcp/src"
+mypy_path = "packages/soc-shared/src:packages/ksor-client/src:evals/src:services/agent-service/src:services/api-gateway/src:services/wazuh-mcp/src:services/enrichment-mcp/src"
 explicit_package_bases = true
 
 # ---------------------------------------------------------------- pytest
@@ -66,7 +75,7 @@ addopts = "-q --disable-socket --allow-unix-socket --import-mode=importlib"
 
 # ---------------------------------------------------------------- coverage
 [tool.coverage.run]
-source = ["soc_shared", "ksor_client", "agent_service", "soc_evals", "wazuh_mcp", "enrichment_mcp"]
+source = ["soc_shared", "ksor_client", "agent_service", "api_gateway", "soc_evals", "wazuh_mcp", "enrichment_mcp"]
 branch = true
 
 [tool.coverage.report]
