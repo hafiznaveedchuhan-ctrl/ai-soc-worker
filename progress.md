@@ -4,35 +4,69 @@ Protocol: `CLAUDE.md` §1. Plan of record: `specs/00-final-plan.txt` (v2). Const
 **Append-only:** add a new session block at the bottom; never delete or edit an old (closed) block.
 Only the "READ ME FIRST" box below is rewritten in place, every session.
 
-> ## READ ME FIRST (rewritten every session — last: session 1 end, 2026-11-12)
-> **Where we are:** ALL CODE for features 01–10 is written and tested OFFLINE. This follows Naveed's order: "code first, LLM testing later" (PHR-0012).
-> - 307 tests pass, coverage 93%. No live LLM call has been made.
-> - Branches: 05/06 → PR #9; 07 → `feat/07-agent-service-api`; 08–10 → `feat/08-api-gateway`. The branch chain is 04 → 05 → 07 → 08.
->   Naveed merges; if a PR is open for each branch, merge them in order.
-> **Next step (needs Naveed):**
-> 1. Merge the open PRs.
-> 2. LIVE LLM test, with "haan" for each:
->    - T1 `npm run serve` (../handbook);
->    - T2 `make demo-ask LIVE=1 CONFIRM=haan Q="What does event 4625 mean?"`;
->    - then `make demo-triage LIVE=1 CONFIRM=haan`.
-> 3. Paid eval: wire the live pipeline into `soc_evals paid` (Claude), then run it with "haan".
-> 4. `make db-upgrade CONFIRM=haan` (Neon) · Auth0 (specs/08-api-gateway/AUTH0-SETUP.md) · Docker Desktop WSL integration → `make up`.
-> **Blocked on Naveed:** the label review (0/40, 0/95) · AbuseIPDB + Tavily free keys · rotate the old keys · the $10 OpenAI limit.
-> **PR rhythm:** Naveed merges each push. Before EVERY push: `gh pr list --head <branch> --state merged` must be empty, else make a new branch.
-> **`.env`:** never read or print it. Claude added only generated secrets (MASK_MAP_KEY, AGENT_INTERNAL_TOKEN) and non-secret defaults.
+> ## READ ME FIRST — HANDOFF after SESSION 1 (rewritten 2026-11-12 ~13:45Z; next = SESSION 2)
 >
-> | # | Feature | State |
-> |---|---|---|
-> | 01 | foundation | **verified** |
-> | 02 | evals-first | implemented (labels unverified) |
-> | 03 | mcp-services | implemented, VERIFY filled |
-> | 04 | handbook-client | implemented, VERIFY filled (live demo pending) |
-> | 05 | agents-core | implemented offline; live test pending ("haan") |
-> | 06 | guardrails | implemented offline; paid refusal eval pending |
-> | 07 | agent-service API | implemented |
-> | 08 | api-gateway | implemented (Neon migration + Auth0 pending) |
-> | 09 | docker | implemented; 4 images built + Trivy-scanned in CI run 43228002776 (green) |
-> | 10 | ci-cd | implemented; first GHCR release needs "haan" |
+> ### A. One-line status
+> **All coding for features 01–10 is DONE and merged into `main`** (PRs #1–#11; #12 = this docs update). 307 tests pass, coverage 93%,
+> CI is green including the 4 Docker image builds and the Trivy scans. **Not done yet: everything that costs money or needs Naveed's accounts**
+> (live LLM runs, the paid eval, Neon migration, Auth0, GHCR push, Docker on this PC) and **Naveed's label review**.
+>
+> ### B. How to START session 2 (Claude: do exactly this)
+> 1. Read this box, then the bottom block "Session 1 — FINAL HANDOFF".
+> 2. `cd ~/ai-soc/soc-worker && git fetch && git checkout main && git pull`, then `git status` and `git log --oneline -3`. Expected head: the merge of PR #12 (or #11 `f907512`).
+> 3. `cd backend && uv sync --all-packages && make check`. Expected: `307 passed`, coverage ≈ 93%, ruff and mypy clean.
+> 4. Tell Naveed in 3 Roman-Urdu lines: (1) the code is complete and offline-tested; (2) what waits on him (list D); (3) the next step = the first LIVE LLM test.
+> 5. New work → a NEW branch from main (`feat/11-live-eval` or similar). Before EVERY push: `gh pr list --head <branch> --state merged` must be empty.
+>
+> ### C. Remaining work (in order)
+> | # | Task | Who | Needs |
+> |---|---|---|---|
+> | R1 | First LIVE /ask: T1 `cd ~/ai-soc/handbook && npm run serve`; T2 `cd backend && make demo-ask LIVE=1 CONFIRM=haan Q="What does event 4625 mean?"` | Naveed runs it, Claude reads the result | "haan" + OPENAI_API_KEY in .env (already there) |
+> | R2 | First LIVE /triage: `make demo-triage LIVE=1 CONFIRM=haan ID=EV-A003` (it asks y/N for the MOCK ticket) | Naveed + Claude | "haan" |
+> | R3 | Fix whatever the live runs show (small-model output-format problems, prompts, max_turns) | Claude | — |
+> | R4 | **Build `soc_evals paid`** (still a stub): run the 40 alerts + 95 probes through `agent_service.flows`, write the predictions JSONL, score, `reports/<date>-paid-report.md`. Show a cost ESTIMATE first (expected < $1 with gpt-5-nano) | Claude | — |
+> | R5 | Run the paid eval | Naveed's "haan" | the label review should come first |
+> | R6 | If targets fail: fix, or upgrade ONE agent via a new ADR (constitution VI.2) | Claude + Naveed | evals |
+> | R7 | Neon: `make db-upgrade CONFIRM=haan` (creates the 8 tables in `soc_worker`) | Naveed's "haan" | SOC_DB_URL in .env (already there) |
+> | R8 | Docker: enable Docker Desktop → Settings → Resources → WSL integration for this distro; then `make up` → `make demo-up` → `make down` | Naveed | — |
+> | R9 | Auth0 tenant per `specs/08-api-gateway/AUTH0-SETUP.md`, then `AUTH_MODE=auth0` | Naveed | free account |
+> | R10 | First GHCR release: GitHub → Actions → release → Run workflow → confirm `haan` | Naveed | "haan" |
+> | R11 | Final: `specs/00-final-plan.txt` "definition of done" check, the report, CAREER-MAP review | Claude + Naveed | after R5 |
+> | Later | Phase 4+ (not this project): the chat widget + login in ../handbook, an analyst dashboard, live Wazuh (Phase 1 B/C), Azure deploy (Phase 8) | — | — |
+>
+> ### D. Waiting on Naveed (manual)
+> 1. **Rotate** the OpenAI and Anthropic keys that were pasted in an earlier chat. Set a **$10 monthly limit** in the OpenAI dashboard.
+> 2. **Label review:** `backend/evals/review/labels-review.md` (40 alerts + 95 probes; 0 verified). The NOTE items are in `specs/02-evals-first/VERIFY.md` §4.
+> 3. Free keys into `backend/.env`: `ABUSEIPDB_API_KEY` (abuseipdb.com) and `WEB_SEARCH_API_KEY` (Tavily, app.tavily.com). Without them, enrichment says "not configured" and research says "web search unavailable".
+> 4. Say **"haan"** for each paid or external step: R1, R2, R5, R7, R10.
+>
+> ### E. Facts the next session must not re-discover
+> - **Versions:** Python 3.12 (`backend/.python-version`) · uv 0.12.6 · openai-agents 0.24.0 · mcp 2.3.0 (`MCPServer`) · FastAPI 0.162.5 (SSE = `fastapi.sse`) · SQLModel 0.0.49 · Alembic 1.20 · PyJWT 2.15.
+> - **Model:** `gpt-5-nano` ($0.05 in / $0.40 out per 1M tokens, checked 2026-11-12, ADR-0003). Per-run budget $0.05; ledger cap $9 (`backend/.agent-ledger.json`).
+> - **Offline testing:** `agents.testing.ScriptedModel` (one per agent: `agent_service.testing.scripted/build_offline`); the fake KSOR server is `ksor_client.testing.build_fake_ksor`.
+> - **Ports:** gateway 8000 · agent-service 8100 · wazuh-mcp 8101 · enrichment-mcp 8102 · handbook 8080.
+> - **`.env` (backend/.env, mode 600, gitignored):** Naveed filled OPENAI_API_KEY and SOC_DB_URL. Claude generated MASK_MAP_KEY and AGENT_INTERNAL_TOKEN without displaying them, and added non-secret defaults. **Never read, cat, source or print it.** Only `grep -c '^NAME=' .env`-style name checks.
+> - **PR rhythm:** Naveed merges every pushed branch quickly. ALWAYS run the guard before pushing; if the branch is merged, make a new branch from origin/main (this happened 5 times; nothing was lost).
+> - **Docker:** not installed in this WSL distro. Images are built in CI (`images` job). The uv image tag is `0.12.6-python3.12-trixie-slim` (the bookworm tag is 404).
+> - **The handbook gate is OFF:** KSOR never abstains, so the Scope Guard declines (ADR-0002). A live handbook search costs an OpenAI embedding (on the handbook side).
+> - **Commands (backend/):**
+>   - checks and evals: `make check` · `make eval-dry` · `make eval-stats` · `make eval-review`;
+>   - demos: `make demo-masking` · `make demo-mcp` · `make demo-ask` / `make demo-triage` (FAKE, free) · `LIVE=1 CONFIRM=haan` (paid);
+>   - servers: `make serve-wazuh-mcp` · `make serve-enrichment-mcp` · `make serve-agent` · `make serve-gateway`;
+>   - database and Docker: `make db-upgrade CONFIRM=haan` · `make up` / `make down` / `make trivy`.
+>
+> | # | Feature | State | Proof |
+> |---|---|---|---|
+> | 01 | foundation | **verified** by Naveed | VERIFY 01 |
+> | 02 | evals-first | done; **labels 0/40 + 0/95 verified** | eval-dry: oracle passes every target |
+> | 03 | mcp-services | done | 53 tests, HTTP smoke test |
+> | 04 | handbook-client | done; live demo pending (R1) | 16 tests |
+> | 05 | agents-core | done offline; live pending (R1/R2) | 17 ScriptedModel flow tests |
+> | 06 | guardrails | done offline; paid refusal eval pending (R5) | guardrail tests |
+> | 07 | agent-service API | done | 7 API tests |
+> | 08 | api-gateway | done; Neon (R7) + Auth0 (R9) pending | 10 end-to-end tests |
+> | 09 | docker | done; local `make up` pending (R8) | CI run 43228002776: 4 images + Trivy green |
+> | 10 | ci-cd | done; first GHCR release pending (R10) | CI green |
 
 ---
 
@@ -311,3 +345,89 @@ Only the "READ ME FIRST" box below is rewritten in place, every session.
 - Auth0 (when you want real login).
 - Enable Docker Desktop WSL integration (for `make up`).
 - Review the labels (`backend/evals/review/labels-review.md`).
+
+
+---
+
+## Session 1 — FINAL HANDOFF (2026-11-12, written at ~82% context, before Naveed clears the session)
+
+## Last updated (ISO date-time, session number)
+2026-11-12T13:45Z · session 1 (closed) · next: session 2
+
+## Done this session (items + files + commit hashes)
+**Planning and SDD (main from aa6468b):**
+- Read the handbook (read only).
+- Plan v1 → v2 (A1–A7) in `specs/00-final-plan.txt`.
+- `CLAUDE.md`, `specs/constitution.md`, templates, PHR-0001…0013, ADR-0001…0009 (all Accepted).
+
+| Feature | What | Commits / PRs |
+|---|---|---|
+| 01 foundation | uv workspace; soc-shared models (TriageNote rules), masking engine (field-aware + free text + property tests), settings; CI skeleton | `284b865`…`749a610` · PR #1, #2 |
+| 02 evals-first | soc-evals: Rate (k/n = p%), scorers, targets, report, CLI; 40 alerts (34 synthetic + 6 OTRF, MIT), 95 probes, oracle/faulty recordings, review sheet; detection-gap finding (ADR-0009) | `faf6ab7`, `ab9f62f`, `e358978`, `bd11d95`, `2515540` · PR #3–#5 |
+| 03 mcp-services | wazuh-mcp (fixture, 2 read-only tools), enrichment-mcp (AbuseIPDB, public IPs only, cache, budget) | `6282383`, `3e41e4c` · PR #6, #7 |
+| 04 handbook-client | ksor-client (real KSOR wire shape, 5 statuses, `not_in_record` only on abstain), fake KSOR | `708bbc5` · PR #8 |
+| 05 + 06 | agent-service: 6 agents, /ask handoff + /triage as_tool, all SDK primitives, all 4 guardrail kinds, MOCK ticket with approval, trace privacy | `89eb8bd` · PR #9 |
+| 07 | agent-service internal FastAPI (SSE, internal token) | `aef382f` · PR #10 |
+| 08 | api-gateway (Auth0/dev auth, roles, rate limit, CORS, SQLModel + Alembic, Fernet mask_map, audit, usage, budget) | `cdc9e15` · PR #11 |
+| 09 + 10 | 4 Dockerfiles, compose, full CI (path filters, images, Trivy), gated release, deploy placeholder | `eb88573` · PR #11 |
+| docs | LEARNING §1–13, CAREER-MAP rows 01–10, progress, PHRs | PR #12 |
+
+## Current state (feature table 01–10: not started / intent / spec / plan / tasks / implementing / verified)
+- 01 is verified.
+- 02–10 are done; their tests pass in CI.
+- Their human verification and the paid or live steps are pending (see the READ ME FIRST box, sections C and D).
+
+## Decisions taken (link ADRs)
+| ADR | Decision |
+|---|---|
+| 0001 | monorepo + uv workspace |
+| 0002 | scope taxonomy, D-01 |
+| 0003 | gpt-5-nano |
+| 0004 | Tavily, wrapped in our own function tool |
+| 0005 | Auth0 |
+| 0006 | no sandbox |
+| 0007 | masking + trace privacy |
+| 0008 | SQLiteSession now, Postgres in Phase 8 |
+| 0009 | eval data: synthetic + OTRF |
+
+**Owner decisions:**
+- the A1–A7 amendments;
+- Q1–Q4 of feature 02, all "haan";
+- blanket approval (PHR-0010);
+- "code first, LLM later" (PHR-0012).
+
+## Errors hit + fixes
+All of them are listed in the two blocks above. The main ones:
+- **Pushes to merged branches:** caught by the guard each time; new branches were made.
+- **Masking:** the "Administrators" group was masked as a user.
+- **httpx logged raw IPs** in request URLs.
+- **Guardrail runs were not priced.**
+- **In-memory sessions lost history** between runs.
+- **SSE status codes:** errors inside the stream never became HTTP codes.
+- **Alembic disabled the app loggers.**
+- **The uv image tag did not exist.**
+- **MCP host protection was off** inside containers.
+
+## Pending / blocked (reason + who acts: Naveed or Claude)
+See the READ ME FIRST box: section C (R1–R11) and section D (Naveed's manual actions).
+The only CODE still missing: **R4 `soc_evals paid`** (Claude, session 2).
+
+## Eval results so far (numbers)
+- **Dry eval:** 135/135 = 100.0% valid. The oracle passes all 7 targets; the faulty recording fails exactly the planted checks.
+- **Paid eval:** not run yet.
+- **Labels verified:** 0/40 alerts, 0/95 probes.
+- **Tests:** 307 pass, coverage 93.07%.
+- **Spend so far:** $0.00 LLM (nothing paid has run).
+
+## Exact next step for the next session
+Follow the READ ME FIRST box, section B (start steps 1–5), then C/R1: ask Naveed for "haan" and run the first LIVE /ask while the handbook is running.
+In parallel, if Naveed prefers, start R4 (`soc_evals paid` wiring, offline-tested with ScriptedModel) on a new branch `feat/11-live-eval`.
+
+## Naveed's manual actions needed
+See the READ ME FIRST box, section D:
+- rotate the keys and set the $10 limit;
+- the label review;
+- the AbuseIPDB and Tavily keys;
+- "haan" for R1, R2, R5, R7 and R10;
+- Docker Desktop WSL integration;
+- Auth0 when you want real login.
