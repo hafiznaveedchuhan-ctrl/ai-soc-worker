@@ -246,6 +246,86 @@ the ids you approve.
 - **Handbook pages:** knowledge/false-positives/vulnerability-scanners, knowledge/wazuh/sshd-rules-reference · rule source: knowledge/wazuh/sshd-rules-reference
 - verified: NO
 
+### [ ] EV-A031 — port-scan — rule 4151 (level 10)
+- **What happened (masked):** Nov 11 01:47:12 <HOST-1> kernel: DROP IN=eth0 SRC=<IP-2> DST=<IP-3> PROTO=TCP DPT=3389
+- **Analyst context (masked):** The 18 dropped packets hit 18 different TCP ports on lab-web01 within 40 seconds.
+- **Label:** verdict **TP** · severity **High** · escalate **no** · MITRE T1046
+- **Why:** 18+ firewall drops in 45 s from one external IP across many ports (rule 4151) → scan → TP; source not on the approved-scanner list; level 10 → High; no escalation condition.
+- **Handbook pages:** knowledge/playbooks/port-scan, knowledge/mitre/t1046-network-service-discovery · rule source: https://github.com/wazuh/wazuh/blob/v4.14.10/ruleset/rules/0900-firewall_rules.xml#L27
+- verified: NO
+
+### [ ] EV-A032 — port-scan — rule 5731 (level 6)
+- **What happened (masked):** Nov 11 02:10:05 <HOST-1> sshd[2050]: Did not receive identification string from <IP-2> port 33012
+- **Analyst context (masked):** —
+- **Label:** verdict **TP** · severity **Low** · escalate **no** · MITRE T1046
+- **Why:** SSH banner probing from an external IP not on the scanner list → reconnaissance → TP; level 6 → Low.
+- **Handbook pages:** knowledge/playbooks/port-scan, knowledge/wazuh/sshd-rules-reference, knowledge/mitre/t1046-network-service-discovery · rule source: knowledge/wazuh/sshd-rules-reference
+- verified: NO
+
+### [ ] EV-A033 — suspicious-powershell — rule 91809 (level 10)
+- **What happened (masked):** Creating Scriptblock text (1 of 1): FromBase64String(...) followed by iex, run by <HOST-4>\<USER-1>
+- **Analyst context (masked):** The script block ran in a PowerShell session started by WINWORD.EXE (Office) for <HOST-4>\<USER-1>
+- **Label:** verdict **TP** · severity **High** · escalate **no** · MITRE T1140, T1059.001
+- **Why:** Script block decodes Base64 and pipes it to iex (Invoke-Expression) at 03:30 from a user session → obfuscated execution → TP; level 10 → High; no escalation condition in this alert.
+- **Handbook pages:** knowledge/playbooks/suspicious-powershell, knowledge/mitre/t1059-001-powershell, knowledge/sysmon/event-1-process-create · rule source: https://github.com/wazuh/wazuh/blob/v4.14.10/ruleset/rules/0915-win-powershell_rules.xml#L74
+- verified: NO
+
+### [ ] EV-A034 — suspicious-powershell — rule 91844 (level 12)
+- **What happened (masked):** Creating Scriptblock text (1 of 1): New-ItemProperty ... CurrentVersion\Run ... C:\Users\Public\odsync.exe
+- **Analyst context (masked):** —
+- **Label:** verdict **TP** · severity **Critical** · escalate **yes — condition #1** · MITRE T1547.001, T1059.001, T1112
+- **Why:** Run-key persistence to an executable in C:\Users\Public, 44 s after EV-A033 on the same host → TP; rule level 12 → escalation condition 1 → Critical.
+- **Handbook pages:** knowledge/playbooks/suspicious-powershell, knowledge/mitre/t1059-001-powershell, knowledge/rules-map/escalation-policy · rule source: https://github.com/wazuh/wazuh/blob/v4.14.10/ruleset/rules/0915-win-powershell_rules.xml#L432
+- verified: NO
+
+### [ ] EV-A035 — new-service-or-scheduled-task — rule 92068 (level 3)
+- **What happened (masked):** Process Create: reg.exe save HKLM\security\policy\secrets, parent PSEXESVC.exe, user NT <HOST-3>\<USER-1>
+- **Analyst context (masked):** —
+- **Label:** verdict **TP** · severity **Low** · escalate **no** · MITRE T1569.002
+- **Why:** PsExec service runs reg.exe to save the LSA secrets hive → credential theft via remote execution → TP. Rule level 3 → Low by the severity model, no escalation condition. NOTE for Naveed: the policy gives credential theft no condition of its own.
+- **Handbook pages:** knowledge/playbooks/new-service-or-scheduled-task, knowledge/sysmon/event-1-process-create · rule source: https://github.com/wazuh/wazuh/blob/v4.14.10/ruleset/rules/0800-sysmon_id_1.xml#L734
+- verified: NO
+
+### [ ] EV-A036 — new-service-or-scheduled-task — rule 61138 (level 5)
+- **What happened (masked):** A service was installed: PSEXESVC, %SystemRoot%\PSEXESVC.exe, demand start, <USER-1>.
+- **Analyst context (masked):** No admin work was scheduled on <HOST-1>; 0.3 s later PSEXESVC started reg.exe (alert EV-A035).
+- **Label:** verdict **TP** · severity **Low** · escalate **no** · MITRE T1543.003
+- **Why:** PSEXESVC installed; the same session then dumps LSA secrets (EV-A035) → TP; not a DC → no condition 7; level 5 → Low.
+- **Handbook pages:** knowledge/playbooks/new-service-or-scheduled-task, knowledge/windows-events/event-7045 · rule source: knowledge/wazuh/windows-rules-reference
+- verified: NO
+
+### [ ] EV-A037 — success-after-failures — rule 60106 (level 3)
+- **What happened (masked):** Network logon (Type 3) for <HOST-5>\<USER-1> on <HOST-1> from <IP-1>.
+- **Analyst context (masked):** —
+- **Label:** verdict **needs_info** · severity **Low** · escalate **no** · MITRE T1078
+- **Why:** A single network logon; whether pgustavo normally connects to WORKSTATION6 from 172.18.39.5 is unknown → needs-info; level 3 → Low.
+- **Handbook pages:** knowledge/windows-events/event-4624, knowledge/wazuh/asset-and-user-context · rule source: knowledge/wazuh/windows-rules-reference
+- verified: NO
+
+### [ ] EV-A038 — lateral-movement (no playbook) — rule 67028 (level 3)
+- **What happened (masked):** Special privileges assigned to new logon: <HOST-3>\<USER-1> (SeDebugPrivilege, SeLoadDriverPrivilege, ...).
+- **Analyst context (masked):** —
+- **Label:** verdict **needs_info** · severity **High** · escalate **yes — condition #2 (also 8)** · MITRE T1484
+- **Why:** Admin-level privileges at a network logon (with EV-A037): pgustavo acts as a privileged account → condition 2 → High; whether this admin logon is expected is unknown → needs-info (High → also condition 8).
+- **Handbook pages:** knowledge/windows-events/event-4672, knowledge/rules-map/escalation-policy · rule source: knowledge/wazuh/windows-rules-reference
+- verified: NO
+
+### [ ] EV-A039 — new-service-or-scheduled-task — rule 61138 (level 5)
+- **What happened (masked):** A service was installed: OTR, C:\Windows\System32\GruntHTTP2.exe, auto start, run as <USER-1>.
+- **Analyst context (masked):** Created 21 seconds after the Type 3 logon of <USER-1> from <IP-1> (alert EV-A037).
+- **Label:** verdict **TP** · severity **Low** · escalate **no** · MITRE T1543.003
+- **Why:** Remote service creation 21 s after a network logon, unusual image name in System32, auto start → TP (remote service persistence); not a DC → no condition 7; level 5 → Low.
+- **Handbook pages:** knowledge/playbooks/new-service-or-scheduled-task, knowledge/windows-events/event-7045, knowledge/mitre/t1543-003-windows-service · rule source: knowledge/wazuh/windows-rules-reference
+- verified: NO
+
+### [ ] EV-A040 — fim-or-malware-alert — rule 554 (level 5)
+- **What happened (masked):** File 'c:\users\wardog\appdata\local\temp\secrets' added. Mode: realtime.
+- **Analyst context (masked):** —
+- **Label:** verdict **TP** · severity **Low** · escalate **no** · MITRE —
+- **Why:** The saved LSA-secrets hive file written by reg.exe under PsExec (EV-A035) → TP; level 5 → Low. NOTE: FIM on this temp path assumes a lab FIM config; OTRF records the file write (Sysmon 11).
+- **Handbook pages:** knowledge/playbooks/fim-or-malware-alert, knowledge/playbooks/new-service-or-scheduled-task · rule source: knowledge/playbooks/fim-or-malware-alert
+- verified: NO
+
 ## Probes
 
 | ✓ | id | set | category | question | expected page | origin |

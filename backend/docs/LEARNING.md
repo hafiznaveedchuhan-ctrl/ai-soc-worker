@@ -6,7 +6,7 @@ then open the files it names and run the command it shows.
 Contents: [1 Big picture](#1-big-picture) · [2 Feature 01 — foundation](#2-feature-01--foundation) ·
 [3 Masking](#3-how-masking-works) · [4 Data contracts](#4-the-data-contracts-models) ·
 [5 Tests](#5-how-the-tests-work) · [6 CI pipeline](#6-ci-pipeline-githubworkflowsciyml) ·
-[7 Later features](#7-later-features-placeholders)
+[7 Later features](#7-later-features-placeholders) · [8 Evals](#8-feature-02--evals-first)
 
 ---
 
@@ -157,5 +157,47 @@ Feature 10 adds: path filters (only changed services run), eval-dry gate, Docker
 ---
 
 ## 7. Later features (placeholders)
-02 evals-first · 03 MCP services · 04 handbook client · 05 agents core · 06 guardrails · 07 agent-service ·
+03 MCP services · 04 handbook client · 05 agents core · 06 guardrails · 07 agent-service ·
 08 api-gateway · 09 Docker (every Dockerfile line explained) · 10 CI/CD.
+
+---
+
+## 8. Feature 02 — evals-first
+
+**Why evals come first:** before an agent exists we decide what "good" means, with numbers. Later every prompt change,
+model change or guardrail change is judged by the same tests, not by a feeling.
+
+### Folder map (`backend/evals/`)
+| Path | What | Command |
+|---|---|---|
+| `data/alerts/EV-A001…A040.json` | 40 Wazuh-shaped alerts: 34 SYNTHETIC (lab values) + 6 mapped from OTRF Security-Datasets | built by `scripts/build_alerts.py` |
+| `data/labels.csv` | the expected answer per alert: verdict, severity, escalate + condition (+ `also_conditions`), MITRE, handbook pages, rule source, rationale, `verified_by` | `make eval-review` to read it |
+| `data/context.csv` | analyst-provided context (change tickets, CDB-list membership, related alerts) — an INPUT, masked like the alert | — |
+| `data/scope/probes.csv` | 95 scope questions in 4 sets (DECLINE 30, ALLOW_CYBER_RESEARCH 25, ALLOW_KSOR 30, NON_CYBER 10) | `scripts/build_probes.py` |
+| `data/reference/ksor_*.txt` | read-only snapshot of the handbook's page ids and MITRE page ids | `scripts/snapshot_ksor_refs.py` |
+| `data/THIRD_PARTY_NOTICES.md` | OTRF MIT licence + which Wazuh rule lines were read | — |
+| `recordings/dry/oracle-*.jsonl` | "perfect" predictions made from the labels | `make eval-recordings` |
+| `recordings/dry/faulty-*.jsonl` | the oracle + 7 planted mistakes | same |
+| `reports/template.md` | the report layout | `make eval-dry` writes `reports/<date>-dry-report.md` |
+| `review/labels-review.md` | the sheet Naveed uses to verify labels (values masked as the AI sees them) | `make eval-review` |
+| `src/soc_evals/` | loader, `Rate`, scorers (triage, scope, cost), targets, report, CLI | `uv run python -m soc_evals …` |
+
+### Key ideas
+- **Labels live outside the alert JSON.** `WazuhAlert` accepts extra fields, so a `_meta.verdict` inside an alert would ride
+  into the prompt and leak the answer. A test checks no alert file contains label words.
+- **Every fact traces to a source.** Rule id/level/MITRE come from a handbook page or a recorded Wazuh ruleset line; a test fails
+  on any other MITRE id. The scorer's "invented MITRE" check even caught one of Claude's own label mistakes (EV-A036).
+- **Count + percent + set size:** `Rate(19, 21)` prints `19/21 = 90.5%`. A bare "90%" hides that one alert moves it ~5 points.
+- **Precision vs recall in SOC words:** recall = "of the real attacks, how many did the AI call TP?" (a miss is dangerous);
+  precision = "of the alerts the AI called TP, how many were real?" (a false alarm wastes analyst time). Target: recall ≥ 95%, precision ≥ 80%.
+- **Confusion matrix:** rows = the label, columns = the AI's verdict; the diagonal is correct.
+- **Testing the tester:** the oracle recording must PASS every target (else the scorer or data is wrong); the faulty recording
+  must fail exactly the planted checks (else a check is blind).
+- **p95 latency (nearest rank):** sort the latencies; take the value at position ⌈0.95·n⌉. 95% of requests were at least that fast.
+- **Severity is not a guess:** the handbook severity model maps rule level + escalation condition to Low/Medium/High/Critical; the builder computes it.
+- **Detection gap (real lesson):** 4 public attack recordings (CMSTP UAC bypass, bitsadmin download, two LSASS dumps with access
+  mask 0x1FFFFF) raise **no** alert in the default Wazuh v4.14.10 ruleset — rule 92900 only checks masks 0x1010/0x40. A SOC must know what its SIEM does not see.
+
+### Commands
+`make eval-dry` (free, offline, in CI) · `make eval-stats` · `make eval-review` · `make eval-recordings` (rebuild data + recordings) ·
+`make eval` (PAID — refuses until features 05/06 and Naveed's "haan").

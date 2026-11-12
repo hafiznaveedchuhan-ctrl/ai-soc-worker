@@ -42,7 +42,7 @@ def test_faulty_fails_exactly_the_planted_checks() -> None:
     assert {(k, v) for k, v in recordings.PLANTED_PROBES.items()} <= got_probes
     assert {f[0] for f in got_probes} == set(recordings.PLANTED_PROBES)
     md, all_pass = score_and_report(D, alerts, probes, INFO)
-    assert not all_pass and "| TP recall | 11/13 = 84.6% |" in md
+    assert not all_pass and "| TP recall | 19/21 = 90.5% |" in md
 
 
 def test_report_shapes() -> None:
@@ -57,7 +57,7 @@ def test_report_shapes() -> None:
         "## Known",
     ):
         assert section in md
-    assert "Labels verified by Naveed | alerts 0/30 = 0.0%" in md
+    assert "Labels verified by Naveed | alerts 0/40 = 0.0%" in md
     assert "$" not in md.replace("Total $", "").replace("Mean $", "")  # no unfilled placeholders
 
 

@@ -1,0 +1,36 @@
+{
+  "id": "EV-A031",
+  "timestamp": "2026-11-11T01:47:12Z",
+  "rule": {
+    "id": "4151",
+    "level": 10,
+    "description": "Multiple Firewall drop events from same source.",
+    "groups": [
+      "firewall",
+      "multiple_drops"
+    ],
+    "mitre": {
+      "id": []
+    }
+  },
+  "agent": {
+    "id": "011",
+    "name": "lab-fw01",
+    "ip": "10.10.0.1"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "iptables"
+  },
+  "location": "/var/log/kern.log",
+  "data": {
+    "srcip": "203.0.113.200",
+    "dstip": "10.10.40.10",
+    "dstport": "3389",
+    "protocol": "TCP",
+    "action": "DROP"
+  },
+  "full_log": "Nov 11 01:47:12 lab-fw01 kernel: DROP IN=eth0 SRC=203.0.113.200 DST=10.10.40.10 PROTO=TCP DPT=3389"
+}

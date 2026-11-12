@@ -4,22 +4,22 @@ Protocol: `CLAUDE.md` §1. Plan of record: `specs/00-final-plan.txt` (v2). Const
 **Append-only:** add a new session block at the bottom; never delete or edit an old (closed) block.
 Only the "READ ME FIRST" box below is rewritten in place, every session.
 
-> ## READ ME FIRST (rewritten every session — last: session 1, 2026-11-12T07:15Z)
-> **Where we are:** Feature 02 (evals-first) **approved** and about 80% implemented. PR #3 (docs + scorer + probes) is already merged by Naveed.
-> The rest is on the NEW branch **`feat/02-evals-part2`** (pushed): 30 of 40 alerts, recordings, report, CLI, review sheet. `make eval-dry` passes (oracle: all targets PASS).
-> **Blocked on Naveed (explicit "haan" needed):** **Q1** download about 6 OTRF files (MIT) · **Q2** read the Wazuh ruleset v4.14.10 for the port-scan/PowerShell rule IDs.
-> Without them, 10 alerts are pending (`test_final_composition` is xfail).
-> Also: Naveed verifies the labels with `backend/evals/review/labels-review.md` · decides how PRs are merged (see the PR-rhythm note below).
-> **Next step (Claude):** after Q1/Q2 → T02-07/T02-08 (4 alerts) + T02-10 (6 OTRF) → T02-14 docs (ADR-0009 Accepted, LEARNING §8, CAREER-MAP 02) → T02-15 VERIFY → PR.
-> **PR rhythm:** Naveed has merged PRs right after a checkpoint push (PR #1, PR #3). After such a merge Claude must continue on a NEW branch from main (guard: `gh pr list --head <branch> --state merged` must be empty before every push).
-> **Never push to:** `feat/01-foundation`, `feat/02-evals-first` (both merged).
+> ## READ ME FIRST (rewritten every session — last: session 1, 2026-11-12T07:40Z)
+> **Where we are:** Feature 02 (evals-first) is **implemented; VERIFY.md is filled** → **waiting for Naveed to verify the feature AND review the labels**.
+> Code is in main through PR #3 and PR #4. The last part is on **`feat/02-evals-part3`** (pushed; Naveed opens and merges the PR).
+> Dataset: 40 alerts (TP 21, benign_TP 11, needs_info 7, FP 1; 6 from OTRF), 95 probes. `make eval-dry`: oracle passes every target. 204 tests, coverage 96%.
+> **Next step:** Naveed runs `specs/02-evals-first/VERIFY.md` and reviews `backend/evals/review/labels-review.md`
+> (labels stay UNVERIFIED until he fills `verified_by`). Then **feature 03 (mcp-services)**: a new branch from main, INTENT → spec → plan → tasks → STOP.
+> **Blocked on Naveed:** the verification + label review above · the `ABUSEIPDB_API_KEY` in backend/.env before 03's live demo · rotate the old keys · the $10 OpenAI limit.
+> **PR rhythm (observed):** Naveed merges each pushed branch within minutes. So before EVERY push: `gh pr list --head <branch> --state merged` must be empty, else create a new branch from origin/main.
+> **Merged branches (never push again):** feat/01-foundation, feat/02-evals-first, feat/02-evals-part2.
 > **`.env`:** exists (600). Never read or print it.
 > **MVP:** features 01–06 + `make demo-ask` / `make demo-triage` by **2026-11-25**.
 >
 > | # | Feature | State |
 > |---|---|---|
 > | 01 | foundation | **verified** (merged) |
-> | 02 | evals-first | implementing (about 80%) — waiting on Q1/Q2 + label verification |
+> | 02 | evals-first | implementing → VERIFY filled; awaiting Naveed's verification + label review |
 > | 03–10 | — | not started |
 
 ---
@@ -27,7 +27,7 @@ Only the "READ ME FIRST" box below is rewritten in place, every session.
 ## Session 1 — 2026-11-12
 
 ## Last updated (ISO date-time, session number)
-2026-11-12T07:15Z · session 1 (block updated during the session; the session is still open)
+2026-11-12T07:40Z · session 1 (block updated during the session; the session is still open)
 
 ## Done this session (items + files + commit hashes)
 - **Read the handbook handoff (READ ONLY):** `../handbook/progress.md` HANDOFF — FINAL, `instance.md`,
@@ -70,12 +70,21 @@ Only the "READ ME FIRST" box below is rewritten in place, every session.
 - **Continued on the new branch `feat/02-evals-part2`:**
   - `e358978`: 30 alerts (20 playbook + 10 FP-page) + labels + context.csv, oracle/faulty recordings, report template + renderer, CLI, review sheet, `make eval-*`, the CI eval-dry step.
   - soc-shared fix: built-in group names stay unmasked.
+- Naveed merged that work as **PR #4** at 07:06Z.
+- **"all haan" (Q1 + Q2):**
+  - **Q2:** read the Wazuh ruleset v4.14.10 (0900 L27 rule 4151; 0915 L74 rule 91809 and L432 rule 91844; 0800 L734 rule 92068; 0945 L10 rule 92900).
+  - **Q1:** downloaded 6 OTRF datasets (about 480 KB) into the scratchpad only, parsed with `python3 -I`.
+    6 alerts mapped from 2 datasets; the MIT notice is in `THIRD_PARTY_NOTICES.md`.
+  - **Detection gap:** the 4 other datasets (CMSTP, bitsadmin, 2× LSASS dump with 0x1FFFFF) raise no default Wazuh alert.
+- **On the new branch `feat/02-evals-part3`:**
+  - `bd11d95`: the complete 40-alert set; ADR-0009 Accepted.
+  - Then: LEARNING §8, CAREER-MAP row 02, evals README, VERIFY.md §4 real output, this progress, PHR-0009.
 
 ## Current state (feature table 01–10: not started / intent / spec / plan / tasks / implementing / verified)
 | # | Feature | State | Branch | Notes |
 |---|---|---|---|---|
 | 01 | foundation | **verified** (human:naveed, 2026-11-12) — merged | PR #1 + PR #2 merged (main 9489133) | 153 tests, coverage 98.99%, CI green |
-| 02 | evals-first | implementing (about 80%) | PR #3 merged · now feat/02-evals-part2 | 30/40 alerts, 95/95 probes, eval-dry green; waiting on Q1/Q2 + label verification |
+| 02 | evals-first | implementing → **VERIFY filled**, awaiting Naveed | PR #3 + #4 merged · feat/02-evals-part3 | 40/40 alerts, 95/95 probes, eval-dry green, 204 tests; labels 0/40 + 0/95 verified |
 | 03 | mcp-services | not started | — | |
 | 04 | handbook-client | not started | — | live demo needs "haan" (embedding cost) |
 | 05 | agents-core | not started | — | model name + price to verify |
@@ -131,36 +140,48 @@ Only the "READ ME FIRST" box below is rewritten in place, every session.
   - the leak check matched substrings ("Oracle" ~ username "oracle");
   - "Administrators" (a GROUP name) was masked as a user.
   Fixes: the rationale is kept out of the output; the leak check uses `find_leaks` with word boundaries; built-in groups stay visible.
+- **Guard caught merged PR #4** before the next push. Fix: new branch `feat/02-evals-part3`. Naveed's rhythm is now known (he merges each push), and the memory is updated.
+- **Default ruleset has no alert for 4 of the 6 OTRF attacks** (cmstp, bitsadmin, LSASS 0x1FFFFF). These were not faked as alerts; recorded as a detection gap (ADR-0009).
+- **Label error caught by the scorer:** EV-A036 had T1569.002, which is neither in the alert nor in the handbook. Removed.
+- **Miscount:** the handbook has 10 playbooks, not 11. Fixed in the tests and specs.
 - **Wrong test expectation:** the faulty recording misses 2 TPs, not 1, so TP recall is 11/13 = 84.6%. Fixed the test.
 - **Hypothesis found an edge case:** `0.0.0.0` and `::ffff:0:0` share one token, so the round-trip test failed. This is intended (FR-01-31). Fix: the round-trip property excludes IPv4-mapped forms, and a new property test proves they share the token.
 
 ## Pending / blocked (reason + who acts: Naveed or Claude)
-- **Naveed:** say "haan" or "no" to Q1 (OTRF download) and Q2 (read the Wazuh ruleset) — 10 alerts wait on these.
-- **Naveed:** verify the labels with `backend/evals/review/labels-review.md` (30 alerts + 95 probes; notes for EV-A002 and EV-A023).
-- **Naveed:** PR rhythm — either merge only when a feature is verified, or keep merging per checkpoint (Claude then opens a new branch each time).
+- **Naveed:** run `specs/02-evals-first/VERIFY.md`; verify the labels with `backend/evals/review/labels-review.md` (40 alerts + 95 probes). The NOTE items are listed in VERIFY §4.
 - **Naveed (before feature 03):** create a free AbuseIPDB account and put the key in `backend/.env` (`ABUSEIPDB_API_KEY`).
-- **Claude:** T02-07, T02-08 (rest), T02-10 after Q1/Q2; T02-14, T02-15.
+- **Claude (after verification):** feature 03 docs on a new branch.
 
 ## Eval results so far (numbers)
-- Dry run (oracle recording, 2026-11-12): datasets 125/125 = 100.0% valid (30 alerts, 95 probes).
-  Every target PASSES: TP recall 13/13, precision 13/13, cited 85/85, decline 30/30, false declines 0/55, leaks 0, invented MITRE 0.
-- Faulty recording: every planted failure is caught (e.g. TP recall 11/13 = 84.6% → FAIL as intended).
-- Labels verified by Naveed: alerts 0/30, probes 0/95.
+- Dry run (oracle recording, 2026-11-12): datasets 135/135 = 100.0% valid (40 alerts, 95 probes). Every target PASSES:
+  - TP recall 21/21 = 100.0%;
+  - TP precision 21/21;
+  - claims cited 95/95;
+  - decline 30/30;
+  - false declines 0/55 = 0.0%;
+  - leak-free outputs 135/135;
+  - invented MITRE 0/40.
+- This proves the pipeline, not an agent.
+- Faulty recording: TP recall 19/21 = 90.5% → FAIL, as planted; all 7 planted mistakes are detected.
+- Labels verified by Naveed: alerts 0/40, probes 0/95.
 - No paid run yet.
 
 ## Exact next step for the next session
-1. Read the READ ME FIRST box. `git branch --show-current` should be `feat/02-evals-part2`. Run the guard: `gh pr list --head feat/02-evals-part2 --state merged` must be empty, otherwise make a new branch from main.
-2. If Q1/Q2 = haan:
-   - Q2: read the Wazuh ruleset v4.14.10 files (GitHub, read only) → record file:line → add 2 port-scan + 2 PowerShell alerts in `build_alerts.py`.
-   - Q1: download about 6 small OTRF files into the scratchpad → map them → add EV-A035…A040 with attribution.
-   - Then `make eval-recordings && make check`. `test_final_composition` must pass, which means removing the xfail.
-3. If Q1/Q2 = no: write those 10 as SYNTHETIC alerts; for port-scan/PowerShell, ask Naveed which rule IDs to use. Never invent them.
-4. Then T02-14 (ADR-0009 → Accepted, LEARNING §8, CAREER-MAP row 02) and T02-15 (VERIFY.md §4 real output, progress, PHR) → PR (ready).
+1. Read the READ ME FIRST box. `git fetch`; if the part3 PR is merged: `git checkout main && git pull`.
+2. If Naveed verified feature 02:
+   - mark VERIFY §5 and `progress` 02 = verified;
+   - apply any label changes he asked for: edit `build_alerts.py` / `build_probes.py`, then `make eval-recordings && make check`;
+   - fill `verified_by` for the ids he approved.
+3. Then start **feature 03 mcp-services** on a new branch `feat/03-mcp-services` from main:
+   - INTENT from plan v2 §10 (wazuh-mcp in fixture mode serving `evals/data/alerts`; enrichment-mcp with AbuseIPDB mocked + cache + rate limit);
+   - check the MCP Python SDK server API in Context7 first;
+   - write spec → plan → tasks, then STOP for approval.
 
 ## Naveed's manual actions needed
 - Rotate the OpenAI and Anthropic keys (pasted in an earlier chat).
 - Set a $10 monthly usage limit in the OpenAI dashboard.
-- Answer Q1/Q2 (haan/no). Verify the eval labels (review sheet).
+- Verify feature 02 and review the eval labels (review sheet).
+- Before the live demo of feature 03: free AbuseIPDB account → `ABUSEIPDB_API_KEY` in `backend/.env`.
 - Before feature 03: free AbuseIPDB account → `ABUSEIPDB_API_KEY` in `backend/.env`.
 - Later (not now):
   - Neon db `soc_worker` (feature 08);

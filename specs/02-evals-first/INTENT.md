@@ -49,7 +49,7 @@ Running any model; building agents; changing the handbook's evals; live Wazuh da
    read-only) and record the file and line for each ID used. Alternative: give those alerts `rule.id` values from the ruleset only
    after you confirm them.
 3. **Size of the TP class:** with 16 TP alerts, one miss gives 15/16 = 93.75% (< 95%). **Proposal:** make at least 20 of the 40
-   alerts TP (so one miss = 95.0% still passes; two misses fail), by giving each of the 11 playbooks ≥ 1 TP plus 9 more.
+   alerts TP (so one miss = 95.0% still passes; two misses fail), by giving each of the 10 playbooks ≥ 1 TP plus 10 more.
 4. **MITRE version conflict:** the handbook's MITRE page uses **T1685.005** for clearing Windows event logs, while its Wazuh rule table
    shows **T1070.004** for rule 60117. **Proposal:** labels accept both (handbook page = preferred, the alert's own `rule.mitre` = allowed),
    and the report notes the conflict for you.

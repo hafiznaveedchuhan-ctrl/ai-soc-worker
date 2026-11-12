@@ -40,7 +40,15 @@ HOSTS = {
     "lab-sql01": "10.10.30.11",
     "lab-bkp01": "10.10.30.40",
     "lab-web01": "10.10.40.10",
+    "lab-fw01": "10.10.0.1",
+    # OTRF Security-Datasets lab hosts (public, simulated "theshire.local" lab; MIT licence)
+    "WORKSTATION5": "",
+    "WORKSTATION6": "",
 }
+RULESET = "https://github.com/wazuh/wazuh/blob/v4.14.10/ruleset/rules/"
+OTRF = "OTRF Security-Datasets (MIT, (c) 2021 Open Threat Research Forge) datasets/atomic/windows/"
+PORT_SCAN = "knowledge/playbooks/port-scan"
+PSH = "knowledge/playbooks/suspicious-powershell"
 AGENT_IDS = {name: f"{i:03d}" for i, name in enumerate(HOSTS, start=1)}
 
 
@@ -63,6 +71,8 @@ class Spec:
     location: str = "EventChannel"
     decoder: str = "windows_eventchannel"
     extra: dict[str, Any] = field(default_factory=dict)
+    source: str = "SYNTHETIC"
+    source_ref: str = ""
 
 
 def severity(level: int, conditions: list[int], host: str) -> str:
@@ -77,11 +87,12 @@ def severity(level: int, conditions: list[int], host: str) -> str:
 
 
 def win(event_id: str, host: str, eventdata: dict[str, str], ts: str) -> dict[str, Any]:
+    computer = f"{host}.lab.local" if host.startswith("lab-") else f"{host}.theshire.local"
     return {
         "win": {
             "system": {
                 "eventID": event_id,
-                "computer": f"{host}.lab.local",
+                "computer": computer,
                 "channel": "Security" if event_id not in {"7045"} else "System",
                 "providerName": "Microsoft-Windows-Security-Auditing"
                 if event_id != "7045"
@@ -1008,6 +1019,334 @@ SPECS: list[Spec] = [
         location="/var/log/auth.log",
         decoder="sshd",
     ),
+    # ================================================================== ruleset-sourced (INTENT Q2 "haan")
+    Spec(
+        "EV-A031",
+        "port-scan",
+        (
+            "4151",
+            10,
+            "Multiple Firewall drop events from same source.",
+            ["firewall", "multiple_drops"],
+            [],
+        ),
+        "lab-fw01",
+        "2026-11-11T01:47:12Z",
+        {
+            "srcip": "203.0.113.200",
+            "dstip": "10.10.40.10",
+            "dstport": "3389",
+            "protocol": "TCP",
+            "action": "DROP",
+        },
+        "Nov 11 01:47:12 lab-fw01 kernel: DROP IN=eth0 SRC=203.0.113.200 DST=10.10.40.10 PROTO=TCP DPT=3389",
+        "TP",
+        [],
+        ["T1046"],
+        [PORT_SCAN, "knowledge/mitre/t1046-network-service-discovery"],
+        RULESET + "0900-firewall_rules.xml#L27",
+        "18+ firewall drops in 45 s from one external IP across many ports (rule 4151) → scan → TP; "
+        "source not on the approved-scanner list; level 10 → High; no escalation condition.",
+        context="The 18 dropped packets hit 18 different TCP ports on lab-web01 within 40 seconds.",
+        location="/var/log/kern.log",
+        decoder="iptables",
+        source_ref="ruleset: 0900-firewall_rules.xml line 27 (rule 4151)",
+    ),
+    Spec(
+        "EV-A032",
+        "port-scan",
+        ("5731", 6, "sshd: SSH Scanning.", ["syslog", "sshd", "recon"], ["T1046"]),
+        "lab-srv02",
+        "2026-11-11T02:10:05Z",
+        {"srcip": "198.51.100.140", "srcport": "33012"},
+        "Nov 11 02:10:05 lab-srv02 sshd[2050]: Did not receive identification string from 198.51.100.140 port 33012",
+        "TP",
+        [],
+        ["T1046"],
+        [PORT_SCAN, SSH_RULES, "knowledge/mitre/t1046-network-service-discovery"],
+        SSH_RULES,
+        "SSH banner probing from an external IP not on the scanner list → reconnaissance → TP; level 6 → Low.",
+        location="/var/log/auth.log",
+        decoder="sshd",
+    ),
+    Spec(
+        "EV-A033",
+        "suspicious-powershell",
+        (
+            "91809",
+            10,
+            "Powershell script may be using Base64 decoding method",
+            ["windows", "powershell"],
+            ["T1140"],
+        ),
+        "lab-ws02",
+        "2026-11-11T03:30:18Z",
+        {
+            "win": {
+                "system": {
+                    "eventID": "4104",
+                    "computer": "lab-ws02.lab.local",
+                    "channel": "Microsoft-Windows-PowerShell/Operational",
+                    "providerName": "Microsoft-Windows-PowerShell",
+                    "systemTime": "2026-11-11T03:30:18Z",
+                },
+                "eventdata": {
+                    "scriptBlockText": "$s=[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('SUVYIChOZXctT2JqZWN0IE5ldC5XZWJDbGllbnQp')); iex $s",
+                    "scriptBlockId": "7d1c2f0e-0000-4000-8000-000000000033",
+                    "path": "",
+                },
+            }
+        },
+        "Creating Scriptblock text (1 of 1): FromBase64String(...) followed by iex, run by LAB\\alice.",
+        "TP",
+        [],
+        ["T1140", "T1059.001"],
+        [PSH, "knowledge/mitre/t1059-001-powershell", "knowledge/sysmon/event-1-process-create"],
+        RULESET + "0915-win-powershell_rules.xml#L74",
+        "Script block decodes Base64 and pipes it to iex (Invoke-Expression) at 03:30 from a user session → "
+        "obfuscated execution → TP; level 10 → High; no escalation condition in this alert.",
+        context="The script block ran in a PowerShell session started by WINWORD.EXE (Office) for LAB\\alice.",
+        source_ref="ruleset: 0915-win-powershell_rules.xml line 74 (rule 91809)",
+    ),
+    Spec(
+        "EV-A034",
+        "suspicious-powershell",
+        (
+            "91844",
+            12,
+            "Possible addition of new item to Windows startup registry",
+            ["windows", "powershell"],
+            ["T1547.001", "T1059.001", "T1112"],
+        ),
+        "lab-ws02",
+        "2026-11-11T03:31:02Z",
+        {
+            "win": {
+                "system": {
+                    "eventID": "4104",
+                    "computer": "lab-ws02.lab.local",
+                    "channel": "Microsoft-Windows-PowerShell/Operational",
+                    "providerName": "Microsoft-Windows-PowerShell",
+                    "systemTime": "2026-11-11T03:31:02Z",
+                },
+                "eventdata": {
+                    "scriptBlockText": "New-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' -Name 'OneDriveSync' -Value 'C:\\Users\\Public\\odsync.exe'",
+                    "scriptBlockId": "7d1c2f0e-0000-4000-8000-000000000034",
+                    "path": "",
+                },
+            }
+        },
+        "Creating Scriptblock text (1 of 1): New-ItemProperty ... CurrentVersion\\Run ... C:\\Users\\Public\\odsync.exe",
+        "TP",
+        [1],
+        ["T1547.001", "T1059.001", "T1112"],
+        [PSH, "knowledge/mitre/t1059-001-powershell", "knowledge/rules-map/escalation-policy"],
+        RULESET + "0915-win-powershell_rules.xml#L432",
+        "Run-key persistence to an executable in C:\\Users\\Public, 44 s after EV-A033 on the same host → TP; "
+        "rule level 12 → escalation condition 1 → Critical.",
+        source_ref="ruleset: 0915-win-powershell_rules.xml line 432 (rule 91844)",
+    ),
+    # ================================================================== OTRF-mapped (INTENT Q1 "haan")
+    Spec(
+        "EV-A035",
+        "new-service-or-scheduled-task",
+        (
+            "92068",
+            3,
+            'PSEXEC was used to execute: "reg" save HKLM\\security\\policy\\secrets',
+            ["sysmon", "sysmon_event1"],
+            ["T1569.002"],
+        ),
+        "WORKSTATION5",
+        "2020-10-19T07:30:46.660Z",
+        {
+            "win": {
+                "system": {
+                    "eventID": "1",
+                    "computer": "WORKSTATION5",
+                    "channel": "Microsoft-Windows-Sysmon/Operational",
+                    "providerName": "Microsoft-Windows-Sysmon",
+                    "systemTime": "2020-10-19T07:30:46.660Z",
+                },
+                "eventdata": {
+                    "image": "C:\\Windows\\System32\\reg.exe",
+                    "commandLine": '"reg" save HKLM\\security\\policy\\secrets C:\\Users\\wardog\\AppData\\Local\\Temp\\secrets',
+                    "parentImage": "C:\\Windows\\PSEXESVC.exe",
+                    "parentCommandLine": "C:\\windows\\PSEXESVC.exe",
+                    "user": "NT AUTHORITY\\SYSTEM",
+                },
+            }
+        },
+        "Process Create: reg.exe save HKLM\\security\\policy\\secrets, parent PSEXESVC.exe, user NT AUTHORITY\\SYSTEM.",
+        "TP",
+        [],
+        ["T1569.002"],
+        [
+            "knowledge/playbooks/new-service-or-scheduled-task",
+            "knowledge/sysmon/event-1-process-create",
+        ],
+        RULESET + "0800-sysmon_id_1.xml#L734",
+        "PsExec service runs reg.exe to save the LSA secrets hive → credential theft via remote execution → TP. "
+        "Rule level 3 → Low by the severity model, no escalation condition. NOTE for Naveed: the policy gives "
+        "credential theft no condition of its own.",
+        source="OTRF",
+        source_ref=OTRF
+        + "credential_access/host/cmd_psexec_lsa_secrets_dump.zip (Sysmon 1, UtcTime 2020-10-19 07:30:46.660)",
+    ),
+    Spec(
+        "EV-A036",
+        "new-service-or-scheduled-task",
+        ("61138", 5, "New Windows Service Created", ["windows", "windows_system"], ["T1543.003"]),
+        "WORKSTATION5",
+        "2020-10-19T07:30:46.416Z",
+        win(
+            "7045",
+            "WORKSTATION5",
+            {
+                "serviceName": "PSEXESVC",
+                "imagePath": "%SystemRoot%\\PSEXESVC.exe",
+                "serviceType": "user mode service",
+                "startType": "demand start",
+                "accountName": "LocalSystem",
+            },
+            "2020-10-19T07:30:46.416Z",
+        ),
+        "A service was installed: PSEXESVC, %SystemRoot%\\PSEXESVC.exe, demand start, LocalSystem.",
+        "TP",
+        [],
+        ["T1543.003"],
+        [
+            "knowledge/playbooks/new-service-or-scheduled-task",
+            "knowledge/windows-events/event-7045",
+        ],
+        WIN_RULES,
+        "PSEXESVC installed; the same session then dumps LSA secrets (EV-A035) → TP; not a DC → no condition 7; "
+        "level 5 → Low.",
+        context="No admin work was scheduled on WORKSTATION5; 0.3 s later PSEXESVC started reg.exe (alert EV-A035).",
+        source="OTRF",
+        source_ref=OTRF + "credential_access/host/cmd_psexec_lsa_secrets_dump.zip (System 7045)",
+    ),
+    Spec(
+        "EV-A037",
+        "success-after-failures",
+        ("60106", 3, "Windows Logon Success", ["windows", "authentication_success"], ["T1078"]),
+        "WORKSTATION6",
+        "2020-08-06T06:27:10.554Z",
+        win(
+            "4624",
+            "WORKSTATION6",
+            {
+                "targetUserName": "pgustavo",
+                "targetDomainName": "THESHIRE.LOCAL",
+                "logonType": "3",
+                "ipAddress": "172.18.39.5",
+                "workstationName": "-",
+            },
+            "2020-08-06T06:27:10.554Z",
+        ),
+        "Network logon (Type 3) for THESHIRE\\pgustavo on WORKSTATION6 from 172.18.39.5.",
+        "needs_info",
+        [],
+        ["T1078"],
+        ["knowledge/windows-events/event-4624", "knowledge/wazuh/asset-and-user-context"],
+        WIN_RULES,
+        "A single network logon; whether pgustavo normally connects to WORKSTATION6 from 172.18.39.5 is unknown "
+        "→ needs-info; level 3 → Low.",
+        source="OTRF",
+        source_ref=OTRF
+        + "lateral_movement/host/covenant_sharpsc_create_dcerpc_smb_svcctl.zip (Security 4624)",
+    ),
+    Spec(
+        "EV-A038",
+        "lateral-movement (no playbook)",
+        ("67028", 3, "Special privileges assigned to new logon.", ["windows"], ["T1484"]),
+        "WORKSTATION6",
+        "2020-08-06T06:27:10.554Z",
+        win(
+            "4672",
+            "WORKSTATION6",
+            {
+                "subjectUserName": "pgustavo",
+                "subjectDomainName": "THESHIRE",
+                "privilegeList": "SeSecurityPrivilege SeBackupPrivilege SeRestorePrivilege SeTakeOwnershipPrivilege SeDebugPrivilege SeSystemEnvironmentPrivilege SeLoadDriverPrivilege SeImpersonatePrivilege SeDelegateSessionUserImpersonatePrivilege",
+            },
+            "2020-08-06T06:27:10.554Z",
+        ),
+        "Special privileges assigned to new logon: THESHIRE\\pgustavo (SeDebugPrivilege, SeLoadDriverPrivilege, ...).",
+        "needs_info",
+        [2, 8],
+        ["T1484"],
+        ["knowledge/windows-events/event-4672", "knowledge/rules-map/escalation-policy"],
+        WIN_RULES,
+        "Admin-level privileges at a network logon (with EV-A037): pgustavo acts as a privileged account → "
+        "condition 2 → High; whether this admin logon is expected is unknown → needs-info (High → also condition 8).",
+        source="OTRF",
+        source_ref=OTRF
+        + "lateral_movement/host/covenant_sharpsc_create_dcerpc_smb_svcctl.zip (Security 4672)",
+    ),
+    Spec(
+        "EV-A039",
+        "new-service-or-scheduled-task",
+        ("61138", 5, "New Windows Service Created", ["windows", "windows_system"], ["T1543.003"]),
+        "WORKSTATION6",
+        "2020-08-06T06:27:31.787Z",
+        win(
+            "7045",
+            "WORKSTATION6",
+            {
+                "serviceName": "OTR",
+                "imagePath": "C:\\Windows\\System32\\GruntHTTP2.exe",
+                "serviceType": "user mode service",
+                "startType": "auto start",
+                "accountName": "pgustavo",
+            },
+            "2020-08-06T06:27:31.787Z",
+        ),
+        "A service was installed: OTR, C:\\Windows\\System32\\GruntHTTP2.exe, auto start, run as pgustavo.",
+        "TP",
+        [],
+        ["T1543.003"],
+        [
+            "knowledge/playbooks/new-service-or-scheduled-task",
+            "knowledge/windows-events/event-7045",
+            "knowledge/mitre/t1543-003-windows-service",
+        ],
+        WIN_RULES,
+        "Remote service creation 21 s after a network logon, unusual image name in System32, auto start → TP "
+        "(remote service persistence); not a DC → no condition 7; level 5 → Low.",
+        context="Created 21 seconds after the Type 3 logon of pgustavo from 172.18.39.5 (alert EV-A037).",
+        source="OTRF",
+        source_ref=OTRF
+        + "lateral_movement/host/covenant_sharpsc_create_dcerpc_smb_svcctl.zip (System 7045)",
+    ),
+    Spec(
+        "EV-A040",
+        "fim-or-malware-alert",
+        ("554", 5, "File added to the system.", ["ossec", "syscheck", "syscheck_entry_added"], []),
+        "WORKSTATION5",
+        "2020-10-19T07:30:47.120Z",
+        {},
+        "File 'c:\\users\\wardog\\appdata\\local\\temp\\secrets' added. Mode: realtime.",
+        "TP",
+        [],
+        [],
+        [FIM, "knowledge/playbooks/new-service-or-scheduled-task"],
+        FIM,
+        "The saved LSA-secrets hive file written by reg.exe under PsExec (EV-A035) → TP; level 5 → Low. "
+        "NOTE: FIM on this temp path assumes a lab FIM config; OTRF records the file write (Sysmon 11).",
+        location="syscheck",
+        decoder="syscheck_new_entry",
+        extra={
+            "syscheck": {
+                "path": "c:\\users\\wardog\\appdata\\local\\temp\\secrets",
+                "event": "added",
+                "uname_after": "SYSTEM",
+            }
+        },
+        source="OTRF",
+        source_ref=OTRF
+        + "credential_access/host/cmd_psexec_lsa_secrets_dump.zip (Sysmon 11 file create, mapped to FIM 554)",
+    ),
 ]
 
 
@@ -1023,7 +1362,11 @@ def to_alert(s: Spec) -> dict[str, Any]:
             "groups": groups,
             "mitre": {"id": mitre},
         },
-        "agent": {"id": AGENT_IDS[s.host], "name": s.host, "ip": HOSTS[s.host]},
+        "agent": {
+            "id": AGENT_IDS[s.host],
+            "name": s.host,
+            **({"ip": HOSTS[s.host]} if HOSTS[s.host] else {}),
+        },
         "manager": {"name": "lab-wazuh"},
         "decoder": {"name": s.decoder},
         "location": s.location,
@@ -1057,8 +1400,9 @@ def main() -> None:
         labels.append(
             {
                 "alert_id": s.aid,
-                "source": "SYNTHETIC",
-                "source_ref": f"synthetic: built from {s.rule_source} + {s.pages[0]}",
+                "source": s.source,
+                "source_ref": s.source_ref
+                or f"synthetic: built from {s.rule_source} + {s.pages[0]}",
                 "playbook": s.playbook,
                 "verdict": s.verdict,
                 "severity": severity(s.rule[1], s.conditions, s.host),

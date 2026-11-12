@@ -1,0 +1,49 @@
+{
+  "id": "EV-A034",
+  "timestamp": "2026-11-11T03:31:02Z",
+  "rule": {
+    "id": "91844",
+    "level": 12,
+    "description": "Possible addition of new item to Windows startup registry",
+    "groups": [
+      "windows",
+      "powershell"
+    ],
+    "mitre": {
+      "id": [
+        "T1547.001",
+        "T1059.001",
+        "T1112"
+      ]
+    }
+  },
+  "agent": {
+    "id": "002",
+    "name": "lab-ws02",
+    "ip": "10.10.20.16"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "location": "EventChannel",
+  "data": {
+    "win": {
+      "system": {
+        "eventID": "4104",
+        "computer": "lab-ws02.lab.local",
+        "channel": "Microsoft-Windows-PowerShell/Operational",
+        "providerName": "Microsoft-Windows-PowerShell",
+        "systemTime": "2026-11-11T03:31:02Z"
+      },
+      "eventdata": {
+        "scriptBlockText": "New-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' -Name 'OneDriveSync' -Value 'C:\\Users\\Public\\odsync.exe'",
+        "scriptBlockId": "7d1c2f0e-0000-4000-8000-000000000034",
+        "path": ""
+      }
+    }
+  },
+  "full_log": "Creating Scriptblock text (1 of 1): New-ItemProperty ... CurrentVersion\\Run ... C:\\Users\\Public\\odsync.exe"
+}

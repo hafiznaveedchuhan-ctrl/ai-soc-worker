@@ -1,5 +1,5 @@
 # ADR-0009 — Eval data sources and licences
-- Status: **Proposed** (becomes Accepted with Naveed's answers to feature 02 INTENT Q1 and Q2)
+- Status: **Accepted** (human:naveed, 2026-11-12 — "all haan" to Q1 OTRF download and Q2 ruleset read)
 - Date: 2026-11-12 · Feature: 02 · Deciders: human:naveed (approver), Claude (author)
 - Related: specs/02-evals-first/{INTENT,spec,plan}.md, ADR-0002
 
@@ -28,3 +28,14 @@ Scope probes: copied from `../handbook/evals/` (origin recorded per row) plus ne
 
 ## Verification
 `test_facts_trace_to_sources` (FR-02-04) and the hygiene test (FR-02-07) pass; Naveed verifies every label.
+
+## Outcome (2026-11-12, as built)
+- 40 alerts: 34 SYNTHETIC (30 from handbook pages, 4 with rule ids read from the Wazuh ruleset v4.14.10:
+  4151 firewall drops, 91809 PowerShell Base64, 91844 Run-key via PowerShell; 5731 from the handbook) + **6 OTRF**
+  events from 2 datasets (PsExec LSA-secrets dump, Covenant SharpSC remote service). Attribution and the MIT notice:
+  `evals/data/THIRD_PARTY_NOTICES.md`.
+- **Detection-gap finding:** 4 other OTRF datasets were downloaded (CMSTP UAC bypass, bitsadmin download, comsvcs and
+  Dumpert LSASS dumps). The default ruleset v4.14.10 has **no rule** that fires on them: rule 92900 (LSASS access) matches
+  only `grantedAccess` 0x1010/0x40, while these dumps use 0x1FFFFF; there is no cmstp or bitsadmin rule. They are not used
+  as alerts, because a default Wazuh would not raise them. This is recorded as a lesson for the later live lab and custom rules.
+- Raw downloads stay in the session scratchpad only; no OTRF or Wazuh file is committed.

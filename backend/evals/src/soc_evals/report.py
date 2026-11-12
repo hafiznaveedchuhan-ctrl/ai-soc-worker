@@ -21,6 +21,10 @@ NOTES = [
     "Naveed to confirm.",
     "EV-A023: listed backup account treated as benign despite condition 2 naming service accounts.",
     "1102 alerts use data.win.logFileCleared.* — re-check against a live lab alert (Phase 1 B/C).",
+    "Detection gap: default Wazuh v4.14.10 raises no alert for the OTRF CMSTP, bitsadmin and "
+    "0x1FFFFF LSASS-dump datasets (ADR-0009) — they are not in this eval.",
+    "EV-A035/EV-A040: credential theft gets Low severity, because the policy has no condition "
+    "for it — Naveed to confirm.",
 ]
 
 

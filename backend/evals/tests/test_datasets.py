@@ -4,7 +4,6 @@ import json
 import re
 from collections import Counter
 
-import pytest
 from soc_evals.datasets import DATA, load
 from soc_shared.masking import find_unmasked_pii
 from soc_shared.masking.ipclass import classify_ip
@@ -12,8 +11,6 @@ from soc_shared.masking.ipclass import classify_ip
 D = load()
 LABELS = list(D.labels.values())
 TARGET_ALERTS = 40
-COMPLETE = len(D.alerts) == TARGET_ALERTS
-PENDING = "10 alerts wait for INTENT Q1 (OTRF download) and Q2 (ruleset rule IDs)"
 
 
 def test_every_alert_has_one_label_and_valid_schema() -> None:
@@ -33,7 +30,9 @@ def test_facts_trace_to_sources() -> None:
         allowed = D.ksor_mitre_ids | set(alert.rule.mitre.id)
         assert set(lab.mitre_ids) <= allowed, lab.alert_id
         assert set(lab.expected_stable_ids) <= D.ksor_stable_ids, lab.alert_id
-        assert lab.rule_source in D.ksor_stable_ids, lab.alert_id
+        assert lab.rule_source in D.ksor_stable_ids or lab.rule_source.startswith(
+            "https://github.com/wazuh/wazuh/blob/v4.14.10/ruleset/rules/"
+        ), lab.alert_id
 
 
 def test_every_escalation_condition_is_covered() -> None:
@@ -46,14 +45,19 @@ def test_minimums_so_far() -> None:
     assert v["needs_info"] >= 4
     assert sum(not lab.escalate for lab in LABELS) >= 8
     assert sum(lab.playbook.startswith("false-positives/") for lab in LABELS) == 10
+    assert sum(lab.source == "OTRF" for lab in LABELS) == 6
 
 
-@pytest.mark.xfail(not COMPLETE, reason=PENDING, strict=True)
 def test_final_composition() -> None:
     assert len(D.alerts) == TARGET_ALERTS
     assert sum(lab.verdict.value == "TP" for lab in LABELS) >= 20
-    playbooks = {lab.playbook for lab in LABELS if lab.verdict.value == "TP"}
-    assert len({p for p in playbooks if not p.startswith("false-positives/")}) >= 11
+    tp_playbooks = {lab.playbook for lab in LABELS if lab.verdict.value == "TP"}
+    handbook_playbooks = {
+        s.split("/")[-1]
+        for s in D.ksor_stable_ids
+        if s.startswith("knowledge/playbooks/") and not s.endswith("/index")
+    }
+    assert handbook_playbooks <= tp_playbooks  # every handbook playbook has ≥ 1 TP alert
 
 
 def test_context_is_input_only() -> None:
