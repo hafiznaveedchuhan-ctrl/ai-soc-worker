@@ -4,8 +4,8 @@
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 UV := uv
-SRC := packages/soc-shared/src evals/src evals/scripts scripts services/wazuh-mcp/src services/enrichment-mcp/src
-TESTS := packages/soc-shared/tests evals/tests tests services/wazuh-mcp/tests services/enrichment-mcp/tests
+SRC := packages/soc-shared/src packages/ksor-client/src evals/src evals/scripts scripts services/wazuh-mcp/src services/enrichment-mcp/src
+TESTS := packages/soc-shared/tests packages/ksor-client/tests evals/tests tests services/wazuh-mcp/tests services/enrichment-mcp/tests
 
 .PHONY: help dev test cov lint fmt typecheck check eval-dry eval-stats eval-review eval-recordings \
         demo-masking demo-mcp demo-enrichment-live serve-wazuh-mcp serve-enrichment-mcp clean \
@@ -71,8 +71,8 @@ clean: ## Remove caches and reports
 # ----- later features (stubs: they say which feature adds them) -----
 eval: ## PAID eval run (needs Naveed's "haan"; pipeline from features 05/06)
 	$(UV) run python -m soc_evals paid
-demo-handbook: ## Handbook MCP smoke test — feature 04
-	@echo "demo-handbook: added in feature 04"; exit 1
+demo-handbook: ## LIVE handbook search (T1: npm run serve in ../handbook): make demo-handbook Q="..." CONFIRM=haan
+	CONFIRM=$(CONFIRM) $(UV) run python scripts/demo_handbook.py "$(Q)"
 demo-ask: ## /ask flow in the terminal — feature 05
 	@echo "demo-ask: added in feature 05"; exit 1
 demo-triage: ## /triage flow in the terminal — feature 05

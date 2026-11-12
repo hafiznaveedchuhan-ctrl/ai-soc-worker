@@ -6,7 +6,7 @@ then open the files it names and run the command it shows.
 Contents: [1 Big picture](#1-big-picture) · [2 Feature 01 — foundation](#2-feature-01--foundation) ·
 [3 Masking](#3-how-masking-works) · [4 Data contracts](#4-the-data-contracts-models) ·
 [5 Tests](#5-how-the-tests-work) · [6 CI pipeline](#6-ci-pipeline-githubworkflowsciyml) ·
-[7 Later features](#7-later-features-placeholders) · [8 Evals](#8-feature-02--evals-first) · [9 MCP services](#9-feature-03--mcp-services)
+[7 Later features](#7-later-features-placeholders) · [8 Evals](#8-feature-02--evals-first) · [9 MCP services](#9-feature-03--mcp-services) · [10 Handbook client](#10-feature-04--handbook-client)
 
 ---
 
@@ -231,3 +231,28 @@ for asyncio's internal self-pipe.
 The server now sets the httpx/httpcore loggers to WARNING, and a test captures ALL loggers to prove no IP is written.
 
 **Read-only by design:** annotations say `read_only_hint=True`; more importantly, no write tool exists, and a test fails if one is added.
+
+---
+
+## 10. Feature 04 — handbook client
+
+`backend/packages/ksor-client` talks to the handbook's KSOR MCP server (`npm run serve` in ../handbook → `127.0.0.1:8080/mcp`).
+
+| File | What |
+|---|---|
+| `models.py` | Pydantic copies of the KSOR wire shapes (`SEARCH_OUTPUT`, `READ_OUTPUT`, `OUTLINE_OUTPUT`) read from the installed `@panaversity/ksor` package; `extra="ignore"` so new server fields never break us |
+| `client.py` | `KsorClient.search/read/outline`, `SearchOutcome`, `not_in_record()`, `search_once()` |
+| `testing.py` | `build_fake_ksor(mode)` — an in-memory MCP server with the same tools and shapes, so tests (and feature 05) run offline |
+| `../../scripts/demo_handbook.py` | `make demo-handbook Q="..." CONFIRM=haan` — the live 2-terminal smoke test |
+
+**Three kinds of "no answer" — never mix them up:**
+- `abstained` → the record says it does not cover this → the agent may say **"not in this record"**.
+- `unavailable` (retrieval failed, server down, embeddings down) → say "the handbook is unavailable"; it is NOT absence.
+- `unpublished` (nothing ingested) → the same: no claim about coverage.
+
+The handbook's gate is OFF (decision C), so in practice `search` almost never abstains. That is why our Scope Guard
+(feature 06) must decline out-of-scope questions BEFORE any search.
+
+**`stable_id`** (`provenance.stable_id`, e.g. `knowledge/windows-events/event-4625`) is what every citation uses.
+**Snippets are capped** (1,200 characters) because passages are untrusted text that will go into prompts.
+**Why a live search needs "haan":** the handbook server embeds every query with OpenAI (a tiny cost on the handbook's key).

@@ -4,30 +4,33 @@ Protocol: `CLAUDE.md` §1. Plan of record: `specs/00-final-plan.txt` (v2). Const
 **Append-only:** add a new session block at the bottom; never delete or edit an old (closed) block.
 Only the "READ ME FIRST" box below is rewritten in place, every session.
 
-> ## READ ME FIRST (rewritten every session — last: session 1, 2026-11-12T08:10Z)
-> **Where we are:** Feature 03 (mcp-services) is **implemented; VERIFY.md is filled** on `feat/03-mcp-services-part2` (PR #6 merged the servers; this branch adds the demo + docs).
-> Feature 02 is merged (PR #5). Naveed said "approved for all your permission", but the eval **labels are still UNVERIFIED** until he signs the review sheet.
-> **Next step:** Naveed merges the 03 PR (and verifies when he can) → Claude starts **feature 04 handbook-client** on a new branch from main:
-> MCP client to `http://127.0.0.1:8080/mcp` → `KsorHit`, recorded fixtures for the tests.
-> The live 2-terminal demo needs Naveed's `npm run serve` + "haan", because every search embeds with OpenAI.
-> **Blocked on Naveed:** label review (`backend/evals/review/labels-review.md`) · `ABUSEIPDB_API_KEY` in `.env` for the live enrichment demo · rotate the old keys · the $10 OpenAI limit.
-> **PR rhythm:** Naveed merges each push. Before EVERY push: `gh pr list --head <branch> --state merged` must be empty, else make a new branch from origin/main.
+> ## READ ME FIRST (rewritten every session — last: session 1, 2026-11-12T10:40Z)
+> **Where we are:** Features 03 and 04 are **implemented**: 03 = PR #6 (merged) + PR #7 (demo/docs); 04 = branch `feat/04-handbook-client` (PR open).
+> VERIFY files are filled for the offline parts. The eval **labels are still UNVERIFIED** (Naveed signs the review sheet).
+> **Next step:** **feature 05 agents-core** on a new branch from main, after the open PRs merge. ADR-0003 (model) needs the current OpenAI model name and price;
+> ADR-0004 (web search) needs the free-tier API choice; ADR-0008 (sessions). Write spec/plan/tasks first (5 primitives at a time).
+> **Naveed's live checks (each needs his "haan" when run):**
+> - T1 `npm run serve` in ../handbook + T2 `make demo-handbook Q="What does event 4625 mean?" CONFIRM=haan`;
+> - `make demo-enrichment-live IP=<public ip> CONFIRM=haan` (needs `ABUSEIPDB_API_KEY`).
+> **Blocked on Naveed:** label review · AbuseIPDB key · rotate the old keys · the $10 OpenAI limit.
+> **PR rhythm:** Naveed merges each push → guard before EVERY push (`gh pr list --head <branch> --state merged` empty), else a new branch from origin/main.
 > **Merged branches (never push again):** feat/01-foundation, feat/02-evals-first, feat/02-evals-part2, feat/02-evals-part3, feat/03-mcp-services.
 > **MVP:** features 01–06 + `make demo-ask` / `make demo-triage` by **2026-11-25**.
 >
 > | # | Feature | State |
 > |---|---|---|
 > | 01 | foundation | **verified** (merged) |
-> | 02 | evals-first | merged; Naveed approved continuing; labels 0/40 + 0/95 verified |
-> | 03 | mcp-services | implementing → VERIFY filled; PR open |
-> | 04–10 | — | not started |
+> | 02 | evals-first | merged; labels 0/40 + 0/95 verified |
+> | 03 | mcp-services | implemented, VERIFY filled; PR #7 open/merged |
+> | 04 | handbook-client | implemented, VERIFY filled (offline); PR open |
+> | 05–10 | — | not started |
 
 ---
 
 ## Session 1 — 2026-11-12
 
 ## Last updated (ISO date-time, session number)
-2026-11-12T08:10Z · session 1 (block updated during the session; the session is still open)
+2026-11-12T10:40Z · session 1 (block updated during the session; the session is still open)
 
 ## Done this session (items + files + commit hashes)
 - **Read the handbook handoff (READ ONLY):** `../handbook/progress.md` HANDOFF — FINAL, `instance.md`,
@@ -86,14 +89,20 @@ Only the "READ ME FIRST" box below is rewritten in place, every session.
     - Then: demo, `make serve-*`, READMEs, LEARNING §9, CAREER-MAP 03, the CI demo step, VERIFY, progress.
   - Checked first: mcp 2.3.0 (Context7; `MCPServer` = the renamed FastMCP), AbuseIPDB v2 CHECK docs (Context7), and that openai-agents 0.24.0 resolves with mcp 2.3.0.
   - A local HTTP smoke test of wazuh-mcp passed.
+  - PR #6 was merged during the work, so the demo and docs went to `feat/03-mcp-services-part2` (`3e41e4c`, PR #7, CI green).
+- **Feature 04 handbook-client** on `feat/04-handbook-client`:
+  - `packages/ksor-client`: wire models copied from the installed `@panaversity/ksor` gateway (read only), KsorClient, SearchOutcome, `search_once`, the fake KSOR server;
+  - 16 tests;
+  - `make demo-handbook` (CONFIRM=haan guard);
+  - docs: LEARNING §10, CAREER-MAP 04, VERIFY offline, PHR-0011.
 
 ## Current state (feature table 01–10: not started / intent / spec / plan / tasks / implementing / verified)
 | # | Feature | State | Branch | Notes |
 |---|---|---|---|---|
 | 01 | foundation | **verified** (human:naveed, 2026-11-12) — merged | PR #1 + PR #2 merged (main 9489133) | 153 tests, coverage 98.99%, CI green |
 | 02 | evals-first | merged (PR #3–#5); continuing approved | main | 40/40 alerts, 95/95 probes; labels 0/40 + 0/95 verified by Naveed |
-| 03 | mcp-services | implementing → VERIFY filled | feat/03-mcp-services (PR open) | 2 servers, 53 tests, demo in CI, no live call |
-| 04 | handbook-client | not started | — | live demo needs "haan" (embedding cost) |
+| 03 | mcp-services | implemented; VERIFY filled | PR #6 merged + PR #7 | 2 servers, 53 tests, demo in CI, no live call |
+| 04 | handbook-client | implemented; VERIFY filled (offline) | feat/04-handbook-client | live demo is Naveed's (needs npm serve + CONFIRM=haan) |
 | 05 | agents-core | not started | — | model name + price to verify |
 | 06 | guardrails | not started | — | MVP ends here (+ CLI demos) |
 | 07 | agent-service | not started | — | after the MVP |
@@ -148,6 +157,7 @@ Only the "READ ME FIRST" box below is rewritten in place, every session.
   - "Administrators" (a GROUP name) was masked as a user.
   Fixes: the rationale is kept out of the output; the leak check uses `find_leaks` with word boundaries; built-in groups stay visible.
 - **pytest-socket blocked asyncio's self-pipe** (`SocketBlockedError` in the MCP tests). Fix: `--allow-unix-socket`; internet sockets stay blocked.
+- **A placeholder test slipped in** (`test_unreachable…` did nothing). Replaced with a real test of `search_once` against a blocked connect.
 - **Raw IP in logs (found by the demo):** httpx logs request URLs (`?ipAddress=<IP>`) at INFO. Fix: the httpx/httpcore loggers are set to WARNING in enrichment-mcp, and a test captures all loggers.
 - **Guard caught merged PR #4** before the next push. Fix: new branch `feat/02-evals-part3`. Naveed's rhythm is now known (he merges each push), and the memory is updated.
 - **Default ruleset has no alert for 4 of the 6 OTRF attacks** (cmstp, bitsadmin, LSASS 0x1FFFFF). These were not faked as alerts; recorded as a detection gap (ADR-0009).
@@ -159,8 +169,8 @@ Only the "READ ME FIRST" box below is rewritten in place, every session.
 ## Pending / blocked (reason + who acts: Naveed or Claude)
 - **Naveed:** run `specs/02-evals-first/VERIFY.md`; verify the labels with `backend/evals/review/labels-review.md` (40 alerts + 95 probes). The NOTE items are listed in VERIFY §4.
 - **Naveed (before feature 03):** create a free AbuseIPDB account and put the key in `backend/.env` (`ABUSEIPDB_API_KEY`).
-- **Naveed:** merge the 03 PR; verify 03 with `specs/03-mcp-services/VERIFY.md` when convenient.
-- **Claude:** feature 04 (handbook-client) on a new branch after the merge.
+- **Naveed:** merge PR #7 and the 04 PR; run the live demos (each needs his "haan").
+- **Claude:** feature 05 (agents-core) docs + ADR-0003/0004/0008 on a new branch from main.
 
 ## Eval results so far (numbers)
 - Dry run (oracle recording, 2026-11-12): datasets 135/135 = 100.0% valid (40 alerts, 95 probes). Every target PASSES:
@@ -177,12 +187,12 @@ Only the "READ ME FIRST" box below is rewritten in place, every session.
 - No paid run yet.
 
 ## Exact next step for the next session
-1. Read the READ ME FIRST box; `git fetch`; if the 03 PR is merged: `git checkout main && git pull && git checkout -b feat/04-handbook-client`.
-2. Feature 04 handbook-client:
-   - INTENT from plan v2 §10;
-   - check the openai-agents `MCPServerStreamableHttp` client + MCP client `call_tool` on `search`/`read`/`outline` (see `../handbook/system/gateways/content.ts`; outputs carry `provenance.stable_id` and `gate: "off"`);
-   - record fixtures of real KSOR responses only after `npm run serve` + "haan" (embedding cost); until then use hand-written fixtures in the documented shape;
-   - spec/plan/tasks → implement (Naveed gave blanket approval) → VERIFY → PR.
+1. Read the READ ME FIRST box. `git fetch`; check that PR #7 and the 04 PR are merged; `git checkout main && git pull && git checkout -b feat/05-agents-core`.
+2. Feature 05 agents-core. Check first in Context7:
+   - openai-agents 0.24.0: Agent, Runner, handoff, as_tool, function_tool, output_type, RunContextWrapper, RunHooks, SQLiteSession, tracing, run_streamed, MaxTurnsExceeded, MCPServerStreamableHttp;
+   - the smallest current OpenAI model name and price (ADR-0003; read the official docs page).
+   Choose the free-tier web search API (ADR-0004).
+3. Write INTENT/spec/plan/tasks. Tests use the SDK's fake model, ksor_client.testing.build_fake_ksor and the MCP servers from 03 (in memory). The first real LLM call needs Naveed's "haan".
 
 ## Naveed's manual actions needed
 - Rotate the OpenAI and Anthropic keys (pasted in an earlier chat).

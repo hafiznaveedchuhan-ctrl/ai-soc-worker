@@ -1,0 +1,14 @@
+[project]
+name = "ksor-client"
+version = "0.1.0"
+description = "Typed client for the handbook's KSOR MCP server (search / read / outline)"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = ["soc-shared", "mcp==2.3.0"]
+
+[tool.uv.sources]
+soc-shared = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.12.6,<0.13.0"]
+build-backend = "uv_build"

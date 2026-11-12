@@ -9,12 +9,14 @@ members = ["packages/*", "evals", "services/*"]
 [tool.uv.sources]
 soc-shared = { workspace = true }
 soc-evals = { workspace = true }
+ksor-client = { workspace = true }
 wazuh-mcp = { workspace = true }
 enrichment-mcp = { workspace = true }
 
 [dependency-groups]
 dev = [
     "enrichment-mcp",
+    "ksor-client",
     "soc-evals",
     "wazuh-mcp",
     "hypothesis>=6.170.15",
@@ -37,7 +39,7 @@ select = ["E", "F", "I", "B", "UP", "S", "SIM", "RUF"]
 allowed-confusables = ["–", "—"]
 
 [tool.ruff.lint.per-file-ignores]
-"**/tests/**" = ["S101", "S104", "S106"]   # asserts; IP and "token" literals are test data
+"**/tests/**" = ["S101", "S104", "S105", "S106"]   # asserts; IP and "token" literals are test data
 "evals/scripts/build_alerts.py" = ["E501", "S108"]  # long data lines; /tmp paths are alert DATA
 
 # ---------------------------------------------------------------- mypy
@@ -45,7 +47,7 @@ allowed-confusables = ["–", "—"]
 python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
-mypy_path = "packages/soc-shared/src:evals/src:services/wazuh-mcp/src:services/enrichment-mcp/src"
+mypy_path = "packages/soc-shared/src:packages/ksor-client/src:evals/src:services/wazuh-mcp/src:services/enrichment-mcp/src"
 explicit_package_bases = true
 
 # ---------------------------------------------------------------- pytest
@@ -56,7 +58,7 @@ addopts = "-q --disable-socket --allow-unix-socket --import-mode=importlib"
 
 # ---------------------------------------------------------------- coverage
 [tool.coverage.run]
-source = ["soc_shared", "soc_evals", "wazuh_mcp", "enrichment_mcp"]
+source = ["soc_shared", "ksor_client", "soc_evals", "wazuh_mcp", "enrichment_mcp"]
 branch = true
 
 [tool.coverage.report]
