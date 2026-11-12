@@ -16,9 +16,9 @@ Push rhythm (Naveed, 2026-11-12, PHR-0004): commit + push this feature branch af
 | [x] | T01-06 | Tests first, then TriageNote + validators + `to_text()` golden test | FR-01-15, 16 | note.py, test_triage_note.py | tests green | T01-05 |
 | [x] | T01-07 | Tests first, then `ipclass` (classify_ip, is_public_ip) | FR-01-34, 35 | ipclass.py, test_ipclass.py | all listed IPs classified correctly | T01-04 |
 | | ⬆ | **checkpoint 2: commit + push** (`feat(01): shared models, TriageNote, ip classification`) | | | pushed | T01-07 |
-| [ ] | T01-08 | Tests first, then MaskMap + `mask_text`/`unmask`/`find_leaks`/`find_unmasked_pii` + edge cases (spec §4) | FR-01-30…32, 36…38 | maskmap.py, text.py, patterns.py | case tests green (count + %) | T01-07 |
-| [ ] | T01-09 | Tests first, then `mask_alert` (field-aware + recursive + dropped secrets + ip_context); golden tests on 3 fixtures | FR-01-11, 12, 33, 34 | alert.py, test_mask_alert.py | golden tests green | T01-08 |
-| [ ] | T01-10 | Property tests (≥ 500 examples: no leak, round-trip, idempotent) + perf budget test | S4, NFR-01-04 | test_masking_properties.py, test_masking_perf.py | green | T01-09 |
+| [x] | T01-08 | Tests first, then MaskMap + `mask_text`/`unmask`/`find_leaks`/`find_unmasked_pii` + edge cases (spec §4) | FR-01-30…32, 36…38 | maskmap.py, text.py, patterns.py | case tests green (count + %) | T01-07 |
+| [x] | T01-09 | Tests first, then `mask_alert` (field-aware + recursive + dropped secrets + ip_context); golden tests on 3 fixtures | FR-01-11, 12, 33, 34 | alert.py, test_mask_alert.py | golden tests green | T01-08 |
+| [x] | T01-10 | Property tests (≥ 500 examples: no leak, round-trip, idempotent) + perf budget test | S4, NFR-01-04 | test_masking_properties.py, test_masking_perf.py | green | T01-09 |
 | | ⬆ | **checkpoint 3: commit + push** (`feat(01): masking engine with property tests`) | | | pushed | T01-10 |
 | [ ] | T01-11 | Settings base + tests (env via monkeypatch; production refuses sensitive tracing) | FR-01-40, 41 | settings.py, test_settings.py | green | T01-04 |
 | [ ] | T01-12 | Makefile (all targets + stubs), `.env.example`, `demo_masking.py`, `tests/test_repo_hygiene.py` | FR-01-04, 05, S8 | backend/ | `make help`, `make demo-masking` OK | T01-09, T01-11 |
