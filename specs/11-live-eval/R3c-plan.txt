@@ -1,0 +1,44 @@
+PLAN — R3c: fixes found by the diagnostic run (feature 11 follow-up)
+Status: DRAFT — waiting for Naveed's "approved". Branch: fix/11-r3c-review-and-retry. 2026-11-12, session 2.
+
+======================================================================
+1. DIAGNOSTIC RUN (main bdcb7e3: EV-A034, EV-P021, EV-P056)
+======================================================================
+Spend: $0.0063 (the ledger agrees). Ledger total: $0.0456 of $9.
+For the first time the events show the real reasons:
+
+  EV-A034  BLOCKED by OUR deterministic rule: "rule level >= 12 but no escalation (policy condition 1)".
+           The model ignored the escalation policy. The rule worked (good).
+  EV-P056  BLOCKED by the LLM reviewer: "fact about Event 4624 without a handbook stable_id".
+           → CODE BUG (ours): the reviewer receives ONLY `answer.answer`. The citations, web_sources and
+             not_in_record are never shown to it, so a correctly cited answer looks uncited. This is also why
+             pilot 3 blocked P056. Pilot 2 passed only because the reviewer was lenient that time.
+  EV-P021  ModelBehaviorError: "answer needs a citation, a web source, or not_in_record=True".
+           With web search off, the model gave an answer without setting not_in_record.
+  Scorer gap: EV-P021 is an ERROR, yet the scorer counted it as "answered ok", because a fallback
+           answer exists. The report therefore looks better than reality.
+
+======================================================================
+2. PROPOSED FIXES (offline, ScriptedModel tests, $0)
+======================================================================
+T11-18 (P056, bug)  The LLM reviewer gets the full draft for an AskAnswer: the answer plus
+        "Citations: …", "Web sources: …" and "not_in_record: …" (masked data only). Test: a cited answer
+        reaches the reviewer with its citations.
+T11-19 (A034)  When the DETERMINISTIC review fails on a TriageNote, use the same ONE corrective retry
+        as for invalid notes (Q1 already allows one retry), fed with the rule problems. The LLM reviewer's
+        problems are not retried (they are softer). In addition, the triage input gets a small
+        code-computed policy hint, e.g.
+        "policy: rule level 12 >= 12 → escalate=true, escalate_condition=1". Test: first note without
+        escalation → retry → ok.
+T11-20 (P021)  /ask also gets ONE corrective retry on an invalid AskAnswer (with the rule message).
+        Test: first answer invalid → second valid → ok.
+T11-21 (scorer)  A probe with `error` set never counts as "answered ok", and becomes a Failure
+        ("answer", error). The dry oracle and faulty runs are unchanged (they have no probe errors).
+        Test added.
+STOP → Naveed verifies → then the pilot again ("haan", ~$0.03): A003, A034, P001, P021, P056, P086.
+
+======================================================================
+3. NOTE
+======================================================================
+Each retry costs about one more model turn, and only on failing items. The full-run estimate stays
+around $0.30–0.60 under the $1.50 cap. No model change (Q2).
