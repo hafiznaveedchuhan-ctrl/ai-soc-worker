@@ -12,7 +12,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class BaseServiceSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=None, extra="ignore")
+    # env_ignore_empty: a blank line like `AGENT_MODEL_DEFAULT=` in .env means "use the default",
+    # not "empty string" (pilot 2026-11-12: model `` → HTTP 404).
+    model_config = SettingsConfigDict(env_file=None, extra="ignore", env_ignore_empty=True)
 
     env: Literal["local", "test", "production"] = "local"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"

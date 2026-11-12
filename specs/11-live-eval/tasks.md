@@ -12,3 +12,10 @@ Legend: [ ] todo · [~] in progress · [x] done · ⬆ = commit + push (run the 
 | [x] T11-06 | `preflight()` test (server up and down) ⬆ | FR-11-08 | tests pass |
 | [x] T11-07 | Makefile, README, LEARNING §14, CAREER-MAP row 11 | — | docs done |
 | [x] T11-08 | `make check` green, plus `eval-estimate` and `eval-dry` output in VERIFY.md ⬆ | all | VERIFY filled |
+
+**Added after the first pilot (2026-11-12, R3; Naveed was told the same day):**
+
+| ID | Task | Satisfies | Done when |
+|---|---|---|---|
+| [x] T11-09 | `WebSource.url`: change `HttpUrl` to a str with a pattern. OpenAI strict output rejects `format: uri` (HTTP 400). Add a schema-format regression test (output types + tool params). | pilot | `test_live_schemas` passes |
+| [x] T11-10 | `BaseServiceSettings`: set `env_ignore_empty=True`, so that a blank `AGENT_MODEL_DEFAULT=` falls back to the default (the empty value gave model `` and HTTP 404). Add a test. | pilot | test passes |
