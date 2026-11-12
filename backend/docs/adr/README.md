@@ -9,12 +9,12 @@ Status values: Proposed → Accepted (by human:naveed) → Superseded by ADR-NNN
 |---|---|---|---|
 | [0001](ADR-0001-monorepo-uv-workspace.md) | Monorepo, uv workspace, one folder + image per service | Accepted 2026-11-12 | 01 |
 | [0002](ADR-0002-scope-taxonomy.md) | Scope taxonomy: ALLOW_KSOR / ALLOW_CYBER_RESEARCH / DECLINE (D-01) | Accepted 2026-11-12 | 02, 06 |
-| 0003 | Model choice: the smallest current OpenAI model per agent | planned | 05 |
-| 0004 | Web-search tool: a free-tier API wrapped as a function tool vs hosted web search | planned | 05 |
+| [0003](ADR-0003-model-choice.md) | Model choice: the smallest current OpenAI model per agent | Accepted 2026-11-12 | 05 |
+| [0004](ADR-0004-web-search.md) | Web-search tool: a free-tier API wrapped as a function tool vs hosted web search | Accepted 2026-11-12 | 05 |
 | 0005 | Auth provider: Auth0 vs Clerk | planned | 08 |
-| 0006 | No sandbox (the worker never runs generated code) | planned | 06 |
-| 0007 | Masking architecture + trace privacy | planned | 06 |
-| 0008 | Sessions: SQLiteSession for Phase 3; Postgres in Phase 8 | planned | 05 |
+| [0006](ADR-0006-no-sandbox.md) | No sandbox (the worker never runs generated code) | Accepted 2026-11-12 | 06 |
+| [0007](ADR-0007-masking-and-trace-privacy.md) | Masking architecture + trace privacy | Accepted 2026-11-12 | 06 |
+| [0008](ADR-0008-sessions.md) | Sessions: SQLiteSession for Phase 3; Postgres in Phase 8 | Accepted 2026-11-12 | 05 |
 | [0009](ADR-0009-eval-data-sources.md) | Eval data sources and licences (synthetic + OTRF MIT) | Accepted 2026-11-12 | 02 |
 
 ## Template

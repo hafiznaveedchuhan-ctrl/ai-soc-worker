@@ -22,8 +22,10 @@ Only the "READ ME FIRST" box below is rewritten in place, every session.
 > | 01 | foundation | **verified** (merged) |
 > | 02 | evals-first | merged; labels 0/40 + 0/95 verified |
 > | 03 | mcp-services | implemented, VERIFY filled; PR #7 open/merged |
-> | 04 | handbook-client | implemented, VERIFY filled (offline); PR open |
-> | 05–10 | — | not started |
+> | 04 | handbook-client | implemented, VERIFY filled (offline) |
+> | 05 | agents-core | implemented offline (ScriptedModel), VERIFY filled |
+> | 06 | guardrails | implemented offline, VERIFY filled |
+> | 07–10 | — | in progress (Naveed: code first, LLM testing later — PHR-0012) |
 
 ---
 

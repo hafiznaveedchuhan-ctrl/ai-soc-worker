@@ -6,7 +6,7 @@ then open the files it names and run the command it shows.
 Contents: [1 Big picture](#1-big-picture) · [2 Feature 01 — foundation](#2-feature-01--foundation) ·
 [3 Masking](#3-how-masking-works) · [4 Data contracts](#4-the-data-contracts-models) ·
 [5 Tests](#5-how-the-tests-work) · [6 CI pipeline](#6-ci-pipeline-githubworkflowsciyml) ·
-[7 Later features](#7-later-features-placeholders) · [8 Evals](#8-feature-02--evals-first) · [9 MCP services](#9-feature-03--mcp-services) · [10 Handbook client](#10-feature-04--handbook-client)
+[7 Later features](#7-later-features-placeholders) · [8 Evals](#8-feature-02--evals-first) · [9 MCP services](#9-feature-03--mcp-services) · [10 Handbook client](#10-feature-04--handbook-client) · [11 Agents + guardrails](#11-features-05-06--agents-and-guardrails)
 
 ---
 
@@ -256,3 +256,50 @@ The handbook's gate is OFF (decision C), so in practice `search` almost never ab
 **`stable_id`** (`provenance.stable_id`, e.g. `knowledge/windows-events/event-4625`) is what every citation uses.
 **Snippets are capped** (1,200 characters) because passages are untrusted text that will go into prompts.
 **Why a live search needs "haan":** the handbook server embeds every query with OpenAI (a tiny cost on the handbook's key).
+
+---
+
+## 11. Features 05-06 — agents and guardrails
+
+### The agents (`services/agent-service/src/agent_service/agents_build.py`)
+| Agent | Role | Model |
+|---|---|---|
+| `triage_agent` | /ask router: its instructions are a *function* that reads the Scope Guard verdict and hands off | gpt-5-nano |
+| `soc_handbook_agent` | answers from KSOR via `search_handbook`, cites stable_ids, `output_type=AskAnswer` | gpt-5-nano |
+| `cyber_research_agent` | defensive topics not in KSOR via `web_search` (trusted domains), saves draft suggestions | gpt-5-nano |
+| `triage_coordinator` | /triage: calls the two agents **as tools** (it keeps control) + get_alert, ip_reputation, the MOCK ticket; `output_type=TriageNote` | gpt-5-nano |
+| `scope_classifier` | tiny agent INSIDE the input guardrail, `output_type=ScopeVerdict` | gpt-5-nano |
+| `note_reviewer` | tiny agent INSIDE the output guardrail (reflection) | gpt-5-nano |
+
+### Handoff vs agent-as-tool
+- **handoff** (/ask): the conversation moves to the specialist; the specialist's answer IS the final answer.
+- **as_tool** (/triage): the coordinator calls a specialist like a function, reads its answer, and continues; it writes the final TriageNote.
+
+### Request flow /ask, step by step
+1. `run_ask` masks the question in code (`<IP-1>` …) and builds a `WorkerContext` (budget, mask map, request id).
+2. `Runner.run(triage_agent, …, session=SQLiteSession, hooks=CostHooks, run_config=RunConfig(trace_include_sensitive_data=False))`.
+3. **Scope Guard** runs first and BLOCKS (`run_in_parallel=False`): regex pre-check, else the classifier agent. DECLINE → tripwire → the exact
+   decline sentence; no other model or tool ran.
+4. `triage_agent` hands off to the handbook or research agent; that agent calls its tool(s) (tool guardrails check the inputs/outputs).
+5. **Note Reviewer** (output guardrail) checks leaks, action claims, citations against what KSOR/web really returned, then the LLM reviewer.
+6. The result (answer, usage with cost, mask entries, events, trace id) goes back to the caller.
+
+### Request flow /triage, step by step
+1. Code fetches the alert (wazuh-mcp), masks it, records rule level and MITRE ids in the context.
+2. The coordinator asks the handbook agent (as a tool), checks public-IP reputation (`ip_reputation(<IP-n>)` — the token is unmasked
+   only inside the tool code; documentation/private IPs are refused with a correction), and may propose the MOCK escalation ticket.
+3. `needs_approval=True` pauses the run → `result.interruptions` → the human says y/N → `state.approve()` / `state.reject()` → the run resumes.
+4. The TriageNote passes the reviewer (e.g. rule level ≥ 12 must escalate; MITRE ids must come from the alert or cited MITRE pages).
+
+### Testing without paying: `agents.testing.ScriptedModel`
+Each agent gets its own scripted model: a list of steps such as `function_call("search_handbook", {...})` then `assistant_message(json)`.
+`model.calls` lets a test inspect exactly what the model was sent (e.g. "no raw IP in any input").
+
+### Cost control
+`CostHooks.on_llm_end` prices every call (input/output tokens × the price table) into `RunBudget`; over the per-run limit → `BudgetExceeded`
+stops the run. The ledger file keeps the cumulative total and refuses new runs at $9. Guardrail-internal runs are priced too (a bug the
+tests caught: they were first uncounted).
+
+### The four guardrail kinds (`guardrails.py`)
+input (scope) · output (reviewer) · tool input (query / IP token / web query) · tool output (web content / reputation schema). Hosted tools and
+`as_tool` skip tool guardrails, so every external call is our own `@function_tool`.
