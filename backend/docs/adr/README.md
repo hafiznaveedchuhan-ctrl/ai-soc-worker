@@ -15,7 +15,7 @@ Status values: Proposed → Accepted (by human:naveed) → Superseded by ADR-NNN
 | 0006 | No sandbox (the worker never runs generated code) | planned | 06 |
 | 0007 | Masking architecture + trace privacy | planned | 06 |
 | 0008 | Sessions: SQLiteSession for Phase 3; Postgres in Phase 8 | planned | 05 |
-| 0009 | Eval data sources and licences | planned | 02 |
+| [0009](ADR-0009-eval-data-sources.md) | Eval data sources and licences (synthetic + OTRF MIT) | Proposed 2026-11-12 | 02 |
 
 ## Template
 ```markdown

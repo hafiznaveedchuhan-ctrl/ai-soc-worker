@@ -4,13 +4,15 @@
 [tool.uv.workspace]
 # services/* is added member by member as services are created (features 03, 07, 08):
 # uv requires every matched directory to contain a pyproject.toml.
-members = ["packages/*"]
+members = ["packages/*", "evals"]
 
 [tool.uv.sources]
 soc-shared = { workspace = true }
+soc-evals = { workspace = true }
 
 [dependency-groups]
 dev = [
+    "soc-evals",
     "hypothesis>=6.170.15",
     "mypy>=2.4.1",
     "pytest>=9.2.0",
@@ -38,18 +40,18 @@ allowed-confusables = ["–", "—"]
 python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
-mypy_path = "packages/soc-shared/src"
+mypy_path = "packages/soc-shared/src:evals/src"
 explicit_package_bases = true
 
 # ---------------------------------------------------------------- pytest
 [tool.pytest.ini_options]
-testpaths = ["packages", "tests"]
+testpaths = ["packages", "evals/tests", "tests"]
 addopts = "-q --disable-socket --import-mode=importlib"
 # Hypothesis keeps a local example DB; keep it out of the repo (.gitignore)
 
 # ---------------------------------------------------------------- coverage
 [tool.coverage.run]
-source = ["soc_shared"]
+source = ["soc_shared", "soc_evals"]
 branch = true
 
 [tool.coverage.report]
