@@ -1,15 +1,18 @@
-"""`python -m soc_evals {dry,paid,stats,review,recordings}` (FR-02-20…24)."""
+"""`python -m soc_evals {dry,paid,estimate,stats,review,recordings}` (FR-02-20…24, FR-11-*)."""
 
 import argparse
+import asyncio
+import os
 import subprocess
 import sys
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
-from soc_evals import recordings, review
+from soc_evals import estimate, recordings, review
 from soc_evals.datasets import DatasetError, EvalData, load
-from soc_evals.predictions import AlertPrediction, ProbePrediction
+from soc_evals.pipeline import RunOutcome, Selection, run_all, subset
+from soc_evals.predictions import AlertPrediction, ProbePrediction, write_jsonl
 from soc_evals.rate import Rate
 from soc_evals.report import RunInfo, render
 from soc_evals.scoring.cost import cost_latency
@@ -17,7 +20,10 @@ from soc_evals.scoring.scope import score_scope
 from soc_evals.scoring.triage import score_triage
 from soc_evals.targets import evaluate
 
-REPORTS = Path(__file__).resolve().parents[2] / "reports"
+EVALS = Path(__file__).resolve().parents[2]
+REPORTS = EVALS / "reports"
+PAID = EVALS / "recordings/paid"
+ENV_FILE = EVALS.parent / ".env"  # read by the settings classes only — never printed
 
 
 def _git_sha() -> str:
@@ -62,11 +68,76 @@ def cmd_dry(_: argparse.Namespace) -> int:
 
 
 def cmd_paid(args: argparse.Namespace) -> int:
-    if not args.yes_paid:
-        print("refused: a paid run needs --yes-paid (and Naveed's explicit 'haan').")
+    """PAID run through the real flows (feature 11). Needs --yes-paid AND CONFIRM=haan."""
+    if not args.yes_paid or os.environ.get("CONFIRM") != "haan":
+        print("refused: a paid run needs --yes-paid AND CONFIRM=haan (Naveed's explicit 'haan').")
+        print("nothing was called.")
         return 1
-    print("refused: the agent pipeline arrives in features 05/06; nothing was called.")
-    return 1
+    from agents import set_trace_processors
+
+    from soc_evals import live
+
+    data = load()
+    selection = Selection(
+        only=args.only,
+        ids=frozenset(i.strip() for i in args.ids.split(",") if i.strip()),
+        limit=args.limit,
+    )
+    if not args.export_traces:
+        set_trace_processors([])  # FR-11-10: no trace export unless asked
+    env = ENV_FILE if ENV_FILE.exists() else None
+    try:
+        n_tools = asyncio.run(live.preflight(live.handbook_url(env)))
+    except live.PreflightError as exc:
+        print(f"refused: {exc}")
+        return 1
+    print(f"pre-flight: handbook MCP up ({n_tools} tools)")
+    pipeline, models = live.build_live(env)
+    outcome = asyncio.run(run_all(data, pipeline, selection, args.max_usd, progress=print))
+    return finish_paid(data, outcome, models, args.max_usd)
+
+
+def finish_paid(
+    data: EvalData,
+    outcome: RunOutcome,
+    models: str,
+    max_usd: float,
+    reports: Path | None = None,
+    recordings_dir: Path | None = None,
+) -> int:
+    """Write the JSONL + report for a paid run (FR-11-09). Separate so tests can call it."""
+    reports = reports or REPORTS
+    recordings_dir = recordings_dir or PAID
+    recordings_dir.mkdir(parents=True, exist_ok=True)
+    today = datetime.now(UTC).date().isoformat()
+    sha = _git_sha()
+    stem = f"{today}-{sha}"
+    write_jsonl(recordings_dir / f"{stem}-alerts.jsonl", outcome.alerts)
+    write_jsonl(recordings_dir / f"{stem}-probes.jsonl", outcome.probes)
+    full = len(data.alerts) + len(data.probes)
+    note = "full run" if outcome.ran == full else f"partial: {outcome.ran}/{full} items"
+    if outcome.stopped_at_cap:
+        note += (
+            f" · STOPPED at the run cap ${max_usd:.2f} ({outcome.ran}/{outcome.planned} planned)"
+        )
+    note += f" · spent ${outcome.spent_usd:.4f}"
+    info = RunInfo("paid", today, sha, f"recordings/paid/{stem}-*.jsonl", models, note)
+    md, all_pass = score_and_report(subset(data, outcome), outcome.alerts, outcome.probes, info)
+    name = "paid-report" if outcome.ran == full else "paid-pilot-report"
+    path = reports / f"{today}-{name}.md"
+    path.write_text(md, encoding="utf-8")
+    print(f"{note}\nreport: {path}")
+    print("targets:", "all PASS" if all_pass else "SOME FAIL (see the report)")
+    return 0 if all_pass else 3
+
+
+def cmd_estimate(_: argparse.Namespace) -> int:
+    from agent_service.settings import DEFAULT_PRICES, AgentSettings
+
+    model = AgentSettings().model_default
+    price_in, price_out = DEFAULT_PRICES[model]
+    print(estimate.render(estimate.estimate(load()), model, price_in, price_out))
+    return 0
 
 
 def cmd_stats(_: argparse.Namespace) -> int:
@@ -109,6 +180,12 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("dry", help="free, offline: validate datasets + score recorded predictions")
     paid = sub.add_parser("paid", help="PAID run with the real agents (features 05/06)")
     paid.add_argument("--yes-paid", action="store_true")
+    paid.add_argument("--only", choices=["all", "alerts", "probes"], default="all")
+    paid.add_argument("--ids", default="", help="comma-separated EV-A…/EV-P… ids")
+    paid.add_argument("--limit", type=int, default=None, help="max items per kind")
+    paid.add_argument("--max-usd", type=float, default=1.50, help="run-wide spend cap")
+    paid.add_argument("--export-traces", action="store_true")
+    sub.add_parser("estimate", help="FREE offline cost estimate of a full paid run")
     sub.add_parser("stats", help="dataset composition")
     sub.add_parser("review", help="write the label review sheet")
     sub.add_parser("recordings", help="regenerate recordings/dry from the labels")
@@ -116,6 +193,7 @@ def main(argv: list[str] | None = None) -> int:
     handlers = {
         "dry": cmd_dry,
         "paid": cmd_paid,
+        "estimate": cmd_estimate,
         "stats": cmd_stats,
         "review": cmd_review,
         "recordings": cmd_recordings,

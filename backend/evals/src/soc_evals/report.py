@@ -35,6 +35,7 @@ class RunInfo:
     git_sha: str
     source: str
     models: str = "none (recorded predictions)"
+    note: str = "full run"
 
 
 def _table(header: list[str], rows: list[list[str]]) -> str:
@@ -64,6 +65,7 @@ def render(
         "git_sha": info.git_sha,
         "source": info.source,
         "models": info.models,
+        "note": info.note,
         "dataset_sizes": f"{len(data.alerts)} alerts · {len(data.probes)} probes",
         "verified": verified,
         "targets_table": _table(
