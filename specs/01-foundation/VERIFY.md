@@ -1,5 +1,5 @@
 # VERIFY — 01 foundation
-Status: **draft** (commands fixed now; real output pasted by Claude in §4 after T01-15) · Naveed's 10%
+Status: **verified** (human:naveed, 2026-11-12) · Naveed's 10%
 
 ## 0. Setup
 ```bash
@@ -15,8 +15,8 @@ uv sync --all-packages          # first time downloads packages (free; PyPI)
 | 1.1 | `make help` | one line per target: dev, test, cov, lint, fmt, typecheck, eval-dry, demo-masking, clean (+ later-feature stubs) |
 | 1.2 | `make lint` | `All checks passed!` and `N files already formatted` |
 | 1.3 | `make typecheck` | `Success: no issues found in N source files` |
-| 1.4 | `make test` | `N passed`, 0 failed, 0 errors |
-| 1.5 | `make cov` | soc_shared `TOTAL ... ≥ 90%` |
+| 1.4 | `make test` | `153 passed`, 0 failed, 0 errors |
+| 1.5 | `make cov` | `153 passed` and `Total coverage: 98.99%` (≥ 90%) |
 | 1.6 | `make demo-masking` | BEFORE (lab values), AFTER (only `<IP-n>`/`<USER-n>`/`<HOST-n>`), `ip_context`, map counts, `LEAK CHECK: OK` |
 | 1.7 | `make eval-dry` | `not implemented until feature 02`, exit 0 |
 | 1.8 | `ls ../pyproject.toml ../src 2>&1` | `No such file or directory` (root scaffold removed) |
@@ -48,8 +48,67 @@ print(repr(m))                                      # counts only, no raw values
 | Add a line `OPENAI_API_KEY=sk-test` to `.env.example` | `test_repo_hygiene.py` fails (and gitleaks may flag it) |
 | Add `import socket; socket.create_connection(("example.com",80))` in a test | the no-network guard fails that test |
 
-## 4. Real output captured by Claude
-_(filled in T01-15)_
+## 4. Real output captured by Claude (2026-11-12, branch feat/01-foundation)
+
+**`make check`** (lint + typecheck + cov) — exit 0
+```
+All checks passed!
+35 files already formatted
+Success: no issues found in 28 source files
+Required test coverage of 90% reached. Total coverage: 98.99%
+153 passed in 15.52s
+```
+Success numbers (INTENT): S1 0 failures ✔ · S2 98.99% ≥ 90% ✔ · S3 masking case tests 100% pass ✔ ·
+S4 property tests 600 + 600 + 300 + 200 examples, 0 leaks ✔ (stable in 3 repeated runs) · S5 ✔ · S6 ✔ ·
+S7 CI run 43166277801 on 9d2cd6f: `python` success, `secrets` (gitleaks) success ✔ · S8 ✔ (below).
+NFR-01-04: 50 KB alert masked in 18.8 / 20.0 / 29.0 ms (3 runs) < 50 ms ✔.
+
+**`make demo-masking`** (AFTER part)
+```
+{
+  "targetUserName": "<USER-1>",
+  "targetDomainName": "<HOST-3>",
+  "subjectUserName": "<HOST-1>$",
+  "workstationName": "<HOST-4>",
+  "ipAddress": "<IP-2>",
+  "ipPort": "51544",
+  "logonType": "3",
+  "status": "0xc000006d",
+  "subStatus": "0xc000006a"
+}
+An account failed to log on. Account Name: <USER-1> Account Domain: <HOST-3> Workstation Name: <HOST-4> Source Network Address: <IP-2> Source Port: 51544 Logon Type: 3
+ip_context: {"<IP-1>": "private 10.0.0.0/8", "<IP-2>": "special documentation"}
+MaskMap(IP=2, USER=1, HOST=5, EMAIL=0)
+dropped fields: none
+LEAK CHECK: OK
+```
+
+**§2 edge cases**
+```
+Login from <IP-1> and <IP-1> by <HOST-1>\<USER-1> to <HOST-2>
+Admin then admin
+see https://attack.mitre.org/techniques/T1110/ at 12:30:45
+mail <EMAIL-1> and <IP-2>:443
+False False True False
+private 172.16.0.0/12
+MaskMap(IP=2, USER=1, HOST=2, EMAIL=1)
+```
+
+**1.7–1.9**
+```
+eval-dry: not implemented until feature 02
+ls: cannot access '../pyproject.toml': No such file or directory
+ls: cannot access '../src': No such file or directory
+.gitignore:14:**/.env	.env          ← .env ignored
+1                                     ← .env.example NOT ignored
+```
+
+**§3 break it (one done by Claude):** changed `JazakAllah."` → `JazakAllah!"` in `models/scope.py` →
+`FAILED test_models.py::TestScope::test_decline_message_exact` → restored with `git checkout --` → green.
+
+**Found and fixed during T01-15:** Hypothesis found that `0.0.0.0` and `::ffff:0:0` (the same address) share one
+token, so `unmask` returns the first spelling. This is the intended rule (FR-01-31); the round-trip property now
+excludes IPv4-mapped forms, and a new property test proves they share the IPv4 token.
 
 ## 5. Naveed's verdict
-_(verified / changes needed — notes)_
+**verified** — human:naveed, 2026-11-12 ("verify"). Note: the merge button failed because PR #2 was a draft; fixed by marking it ready (PHR-0006).

@@ -27,9 +27,11 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "S", "SIM", "RUF"]
+# The handbook template uses the en dash (–) and em dash (—) on purpose.
+allowed-confusables = ["–", "—"]
 
 [tool.ruff.lint.per-file-ignores]
-"**/tests/**" = ["S101"]   # assert is how pytest works
+"**/tests/**" = ["S101", "S104", "S106"]   # asserts; IP and "token" literals are test data
 
 # ---------------------------------------------------------------- mypy
 [tool.mypy]
@@ -43,6 +45,7 @@ explicit_package_bases = true
 [tool.pytest.ini_options]
 testpaths = ["packages", "tests"]
 addopts = "-q --disable-socket --import-mode=importlib"
+# Hypothesis keeps a local example DB; keep it out of the repo (.gitignore)
 
 # ---------------------------------------------------------------- coverage
 [tool.coverage.run]

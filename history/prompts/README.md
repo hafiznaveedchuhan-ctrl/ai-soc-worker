@@ -11,6 +11,8 @@ Never put secrets, keys or unmasked personal data in a PHR.
 | [0002](PHR-0002-summary-and-d01.md) | 2026-11-12 | clarify | 02/06 | Read-first summary, Roman Urdu recap, D-01 scope decision |
 | [0003](PHR-0003-plan-v2-amendments.md) | 2026-11-12 | plan | all | Plan v1 approved with amendments A1–A7 → v2 |
 | [0004](PHR-0004-v2-approved-sdd-push-rhythm.md) | 2026-11-12 | plan → spec | 01 | v2 approved; strong SDD docs; push every 3–4 steps |
+| [0005](PHR-0005-feature01-approved-implemented.md) | 2026-11-12 | implement → verify | 01 | Feature 01 docs approved; implemented T01-01…15 |
+| [0006](PHR-0006-verified-merge-error.md) | 2026-11-12 | verify → fix | 01 | Verified; draft-PR merge error fixed; pushed-after-merge incident + guard |
 
 ## Template
 ```markdown
