@@ -1,0 +1,17 @@
+[project]
+name = "wazuh-mcp"
+version = "0.1.0"
+description = "Read-only SIEM data access (MCP server): Wazuh alerts, fixture mode"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "mcp==2.3.0",
+    "soc-shared",
+]
+
+[tool.uv.sources]
+soc-shared = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.12.6,<0.13.0"]
+build-backend = "uv_build"

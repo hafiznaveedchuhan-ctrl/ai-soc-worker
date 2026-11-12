@@ -4,8 +4,8 @@
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 UV := uv
-SRC := packages/soc-shared/src evals/src evals/scripts scripts
-TESTS := packages/soc-shared/tests evals/tests tests
+SRC := packages/soc-shared/src evals/src evals/scripts scripts services/wazuh-mcp/src services/enrichment-mcp/src
+TESTS := packages/soc-shared/tests evals/tests tests services/wazuh-mcp/tests services/enrichment-mcp/tests
 
 .PHONY: help dev test cov lint fmt typecheck check eval-dry eval-stats eval-review eval-recordings \
         demo-masking clean \
