@@ -4,7 +4,14 @@ version = "0.1.0"
 description = "AI brain: OpenAI Agents SDK agents, guardrails, sessions, tracing (internal service)"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = ["soc-shared", "ksor-client", "mcp==2.3.0", "openai-agents==0.24.0"]
+dependencies = [
+    "soc-shared",
+    "ksor-client",
+    "mcp==2.3.0",
+    "openai-agents==0.24.0",
+    "fastapi>=0.162.5",
+    "uvicorn>=0.54.0",
+]
 
 [tool.uv.sources]
 soc-shared = { workspace = true }
