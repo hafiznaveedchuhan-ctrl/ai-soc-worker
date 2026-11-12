@@ -1,0 +1,15 @@
+[project]
+name = "agent-service"
+version = "0.1.0"
+description = "AI brain: OpenAI Agents SDK agents, guardrails, sessions, tracing (internal service)"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = ["soc-shared", "ksor-client", "mcp==2.3.0", "openai-agents==0.24.0"]
+
+[tool.uv.sources]
+soc-shared = { workspace = true }
+ksor-client = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.12.6,<0.13.0"]
+build-backend = "uv_build"
