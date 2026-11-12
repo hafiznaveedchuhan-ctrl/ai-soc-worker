@@ -67,6 +67,10 @@ class AgentPipeline:
     cfg: FlowConfig
     deps: Deps
 
+    def ledger_total(self) -> float | None:
+        """Cumulative spend from the $9 ledger (None in tests without a ledger)."""
+        return self.cfg.ledger.total() if self.cfg.ledger is not None else None
+
     async def run_alert(self, alert_id: str, alert: WazuhAlert, context: str) -> AlertPrediction:
         t0 = time.perf_counter()
         r = await run_triage(

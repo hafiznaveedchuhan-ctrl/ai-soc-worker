@@ -119,7 +119,8 @@ def build_agents(
         name="soc_handbook_agent",
         handoff_description="Answers SOC L1 questions from the governed handbook (KSOR) with stable_id citations.",
         instructions="You answer from the SOC handbook only. Call search_handbook first; answer briefly, cite "
-        "stable_ids in `citations`; if nothing relevant, set not_in_record=true. scope=ALLOW_KSOR."
+        "stable_ids in `citations`; if nothing relevant, set not_in_record=true. scope=ALLOW_KSOR. "
+        "The answer is for the analyst: never a sentence about transferring or handing off."
         + COMMON,
         model=model_for("handbook"),
         tools=[tools["search_handbook"]],
@@ -133,7 +134,11 @@ def build_agents(
         instructions="Use web_search (trusted domains only). Label every claim 'unverified web source (<url>)', "
         "put URLs in web_sources, keep confidence <= 0.6, give concepts and detection logic only "
         "(never step-by-step device configuration or offensive use). If useful, save a draft with "
-        "write_ksor_suggestion. scope=ALLOW_CYBER_RESEARCH." + COMMON,
+        "write_ksor_suggestion. scope=ALLOW_CYBER_RESEARCH. "
+        "If web_search returns status 'unavailable', answer exactly: 'Not in this record: web "
+        "search is unavailable, so this cannot be researched right now.' with not_in_record=true, "
+        "web_sources=[] and confidence=0. The answer is for the analyst: never a sentence about "
+        "transferring or handing off." + COMMON,
         model=model_for("research"),
         tools=[tools["web_search"], tools["write_ksor_suggestion"]],
         output_type=AskAnswer,

@@ -22,3 +22,9 @@
 ## Consequences
 - The research probes score "web search unavailable" until a Tavily key exists. They still count as valid answers.
 - The scores depend on the handbook content at run time, so the report records the commit and the date.
+
+## Update after the pilots (2026-11-12, R3)
+- **Measured cost of the pilot:** $0.0068 per alert (144 s), $0.0006–0.0015 per allowed probe, and $0–0.0004 per declined probe.
+- **Full run:** about $0.29 (pessimistic $0.60), so the $1.50 cap is kept.
+- **The cap now uses `max(reported usage, ledger delta)`.** The ledger is written per call by the hooks, so it also catches spend that a failed item's prediction lost.
+- **One corrective retry per alert (Naveed Q1).** It runs when the TriageNote breaks a model rule. Only the rule messages are fed back; the values never are.

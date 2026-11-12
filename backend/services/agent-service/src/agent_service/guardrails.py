@@ -135,11 +135,19 @@ async def triage_input_guard(
 
 
 # ------------------------------------------------------------------ 2 OUTPUT review
+HANDOFF_RE = re.compile(
+    r"\s*(transferring|handing (you )?(off|over)|i(?: will|'ll| am going to) (transfer|hand))\b",
+    re.IGNORECASE,
+)
+
+
 def review_problems(output: TriageNote | AskAnswer, ctx: WorkerContext) -> list[str]:
     text = output.to_text() if isinstance(output, TriageNote) else output.answer
     if isinstance(output, AskAnswer):
         text += " " + " ".join(output.citations)
     problems: list[str] = []
+    if isinstance(output, AskAnswer) and HANDOFF_RE.match(output.answer):
+        problems.append("the answer is a handoff sentence, not an answer (pilot 2026-11-12)")
     if find_leaks(text, ctx.mask_map) or find_unmasked_pii(TOKEN_RE.sub(" ", text)):
         problems.append("raw IP/user/host/email in the output")
     if ACTION_CLAIM_RE.search(text):

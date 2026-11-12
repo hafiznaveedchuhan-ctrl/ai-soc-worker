@@ -41,7 +41,9 @@ class RunOutcome:
     probes: list[ProbePrediction] = field(default_factory=list)
     planned: int = 0
     stopped_at_cap: bool = False
-    spent_usd: float = 0.0
+    spent_usd: float = 0.0  # max(sum of reported usage, ledger delta) — see _spent
+    reported_usd: float = 0.0  # sum of the usage inside the predictions
+    ledger_usd: float | None = None  # ledger delta for this run, when the pipeline has a ledger
 
     @property
     def ran(self) -> int:
@@ -63,6 +65,16 @@ async def run_all(
     alert_ids = selection.pick(data.alerts, "alerts")
     probe_ids = selection.pick(data.probes, "probes")
     out = RunOutcome(planned=len(alert_ids) + len(probe_ids))
+    ledger = getattr(pipeline, "ledger_total", None)  # optional: AgentPipeline has one
+    start = ledger() if ledger else None
+
+    def account(pred: AlertPrediction | ProbePrediction) -> None:
+        # The ledger is written per model call by the hooks, so it also counts calls whose
+        # prediction lost its usage (pilot 2026-11-12, F1). The cap uses the larger number.
+        out.reported_usd += _cost(pred)
+        if ledger and start is not None:
+            out.ledger_usd = max(0.0, (ledger() or 0.0) - start)
+        out.spent_usd = max(out.reported_usd, out.ledger_usd or 0.0)
 
     def over_cap() -> bool:
         if out.spent_usd >= max_usd:
@@ -81,7 +93,7 @@ async def run_all(
         if not a.latency_ms:
             a = a.model_copy(update={"latency_ms": (time.perf_counter() - t0) * 1000})
         out.alerts.append(a)
-        out.spent_usd += _cost(a)
+        account(a)
         progress(f"{aid}: {'ok' if a.error is None else a.error[:60]}  ${out.spent_usd:.4f}")
 
     for pid in probe_ids:
@@ -95,7 +107,7 @@ async def run_all(
         if not p.latency_ms:
             p = p.model_copy(update={"latency_ms": (time.perf_counter() - t0) * 1000})
         out.probes.append(p)
-        out.spent_usd += _cost(p)
+        account(p)
         progress(f"{pid}: {p.scope_label or p.error}  ${out.spent_usd:.4f}")
     return out
 

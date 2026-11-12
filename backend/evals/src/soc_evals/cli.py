@@ -121,6 +121,11 @@ def finish_paid(
             f" · STOPPED at the run cap ${max_usd:.2f} ({outcome.ran}/{outcome.planned} planned)"
         )
     note += f" · spent ${outcome.spent_usd:.4f}"
+    if outcome.ledger_usd is not None:
+        note += (
+            f" (ledger-verified ${outcome.ledger_usd:.4f}; "
+            f"reported in predictions ${outcome.reported_usd:.4f})"
+        )
     info = RunInfo("paid", today, sha, f"recordings/paid/{stem}-*.jsonl", models, note)
     md, all_pass = score_and_report(subset(data, outcome), outcome.alerts, outcome.probes, info)
     name = "paid-report" if outcome.ran == full else "paid-pilot-report"

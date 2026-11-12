@@ -11,15 +11,22 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from agents import (
+    AgentsException,
     InputGuardrailTripwireTriggered,
+    ItemHelpers,
     MaxTurnsExceeded,
+    MessageOutputItem,
+    ModelBehaviorError,
     OutputGuardrailTripwireTriggered,
     RunConfig,
+    RunErrorHandlerInput,
+    RunErrorHandlers,
     Runner,
     SQLiteSession,
     trace,
 )
 from agents.items import ToolApprovalItem
+from pydantic import BaseModel, ValidationError
 from soc_shared.masking import MaskEntry, mask_alert, mask_text
 from soc_shared.models import DECLINE_MESSAGE, AskAnswer, LlmUsage, TriageNote, WazuhAlert
 
@@ -31,6 +38,34 @@ from agent_service.guardrails import SAFE_FALLBACK
 from agent_service.hooks import CostHooks
 
 Approver = Callable[[ToolApprovalItem], Awaitable[bool]]
+NOTE_RETRIES = 1  # one corrective retry when the TriageNote breaks a model rule (R3, Naveed Q1)
+
+
+def rule_problems(text: str, model: type[BaseModel]) -> list[str]:
+    """Re-validate a rejected final output and return ONLY the rule messages + field paths.
+
+    The SDK redacts the payload (good); we need the reason to let the model correct itself.
+    `include_input=False` keeps every value (masked or not) out of the messages."""
+    try:
+        model.model_validate_json(text)
+    except ValidationError as exc:
+        return [
+            f"{'.'.join(str(p) for p in e['loc']) or 'note'}: {e['msg']}"[:200]
+            for e in exc.errors(include_input=False, include_url=False)
+        ][:5]
+    except ValueError:
+        return ["output is not valid JSON"]
+    return []
+
+
+def _capture_problems(model: type[BaseModel]) -> RunErrorHandlers[WorkerContext]:
+    def on_invalid(data: RunErrorHandlerInput[WorkerContext]) -> None:
+        msgs = [i for i in data.run_data.new_items if isinstance(i, MessageOutputItem)]
+        text = ItemHelpers.text_message_output(msgs[-1]) if msgs else ""
+        data.context.context.output_problems = rule_problems(text, model) or ["invalid output"]
+        return None  # keep the SDK behaviour: raise ModelBehaviorError; the flow decides
+
+    return {"invalid_final_output": on_invalid}
 
 
 @dataclass
@@ -129,6 +164,7 @@ async def run_ask(
                 session=session,
                 max_turns=cfg.max_turns,
                 run_config=_run_config("soc-ask", ctx),
+                error_handlers=_capture_problems(AskAnswer),
             )
             answer = r.final_output_as(AskAnswer)
             return _done(ctx, t.trace_id, "ok", answer=answer, text=answer.answer)
@@ -146,6 +182,12 @@ async def run_ask(
         except BudgetExceeded as exc:
             ans = _fallback_answer(ctx, f"Stopped: {exc}.")
             return _done(ctx, t.trace_id, "budget", answer=ans, text=ans.answer)
+        except AgentsException as exc:  # ModelBehaviorError & co.: keep the usage already spent
+            ctx.events.append(f"agent error {type(exc).__name__}: {ctx.output_problems}")
+            ans = _fallback_answer(
+                ctx, "The assistant produced an invalid answer. " + SAFE_FALLBACK
+            )
+            return _done(ctx, t.trace_id, "error", answer=ans, text=ans.answer)
 
 
 async def run_ask_streamed(
@@ -213,38 +255,67 @@ async def run_triage(
             "ip_context": masked.ip_context,
             "analyst_context": mask_text(analyst_context, ctx.mask_map) or None,
         }
-        session = SQLiteSession(f"triage-{alert_id}-{ctx.request_id}")  # a fresh session per alert
         hooks = CostHooks(app.model_names)
+        handlers = _capture_problems(TriageNote)
+        retries = NOTE_RETRIES
+        task = json.dumps(payload)
         try:
-            r = await Runner.run(
-                app.triage_entry,
-                json.dumps(payload),
-                context=ctx,
-                hooks=hooks,
-                session=session,
-                max_turns=cfg.max_turns,
-                run_config=_run_config("soc-triage", ctx),
-            )
-            while (
-                r.interruptions
-            ):  # needs_approval: the human approves or rejects in the terminal/UI
-                state = r.to_state()
-                for item in r.interruptions:
-                    if await approve(item):
-                        state.approve(item)
-                        ctx.events.append(f"approved {item.tool_name}")
-                    else:
-                        state.reject(item)
-                        ctx.events.append(f"rejected {item.tool_name}")
-                r = await Runner.run(
-                    app.triage_entry,
-                    state,
-                    context=ctx,
-                    hooks=hooks,
-                    session=session,
-                    max_turns=cfg.max_turns,
-                    run_config=_run_config("soc-triage", ctx),
-                )
+            while True:
+                # a fresh session per alert attempt: no memory across alerts or attempts
+                session = SQLiteSession(f"triage-{alert_id}-{ctx.request_id}-{retries}")
+                try:
+                    r = await Runner.run(
+                        app.triage_entry,
+                        task,
+                        context=ctx,
+                        hooks=hooks,
+                        session=session,
+                        max_turns=cfg.max_turns,
+                        run_config=_run_config("soc-triage", ctx),
+                        error_handlers=handlers,
+                    )
+                    while (
+                        r.interruptions
+                    ):  # needs_approval: the human approves or rejects in the terminal/UI
+                        state = r.to_state()
+                        for item in r.interruptions:
+                            if await approve(item):
+                                state.approve(item)
+                                ctx.events.append(f"approved {item.tool_name}")
+                            else:
+                                state.reject(item)
+                                ctx.events.append(f"rejected {item.tool_name}")
+                        r = await Runner.run(
+                            app.triage_entry,
+                            state,
+                            context=ctx,
+                            hooks=hooks,
+                            session=session,
+                            max_turns=cfg.max_turns,
+                            run_config=_run_config("soc-triage", ctx),
+                            error_handlers=handlers,
+                        )
+                    break
+                except ModelBehaviorError:
+                    problems = ctx.output_problems or ["invalid output"]
+                    ctx.events.append(f"invalid note: {problems}")
+                    if retries <= 0:
+                        return _done(
+                            ctx,
+                            t.trace_id,
+                            "error",
+                            text="The note broke the template rules twice. " + SAFE_FALLBACK,
+                        )
+                    retries -= 1
+                    ctx.output_problems = []
+                    ctx.events.append("retrying once with the rule messages")
+                    task = json.dumps(
+                        {
+                            **payload,
+                            "previous_attempt_rejected_because": problems,
+                            "instruction": "Return a corrected TriageNote (follow these rules).",
+                        }
+                    )
             note = r.final_output_as(TriageNote)
             return _done(ctx, t.trace_id, "ok", note=note, text=note.to_text())
         except InputGuardrailTripwireTriggered:
@@ -259,3 +330,6 @@ async def run_triage(
             )
         except BudgetExceeded as exc:
             return _done(ctx, t.trace_id, "budget", text=f"Stopped: {exc}. " + SAFE_FALLBACK)
+        except AgentsException as exc:  # keep the usage already spent (R3 F1)
+            ctx.events.append(f"agent error {type(exc).__name__}")
+            return _done(ctx, t.trace_id, "error", text="Agent error. " + SAFE_FALLBACK)

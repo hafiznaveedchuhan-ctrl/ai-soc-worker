@@ -56,3 +56,17 @@ At checkpoint 2, the merged-branch guard printed PR #13 as MERGED, but the `&&` 
 - **Recovery:** the new branch `feat/11-live-eval-wiring` was made from `origin/main` and the commit was cherry-picked (`b56fe9c`).
 - **Fix:** the guard is now `test -z "$(gh pr list --head <b> --state merged)"` (LEARNING §14).
 - **Naveed's choice:** the stale remote branch `feat/11-live-eval` can be deleted.
+
+## 7. Paid pilots (Naveed "haan", 2026-11-12) and the R3 fixes
+- **Pilot 1 ($0.00).** Two failures: HTTP 400 `format: uri`, and HTTP 404 for the empty model name. Fixed in PR #15 (T11-09/10).
+- **Pilot 2 (ledger $0.013576 in total).** Details are in `R3-pilot-findings-plan.txt` §1.
+  - **EV-A003:** ok, $0.0068, 144 s. The verdict was needs_info; the label says TP.
+  - **EV-A034:** ModelBehaviorError, ~$0.0043. This usage was lost from the report, which is F1.
+  - **Probes:** both declines exact; the KSOR answer cited the right page; the research answer was a handoff sentence (F3).
+- **R3 fixes (T11-11…13).** `make check` → `341 passed`, coverage 93.46%, ruff and mypy clean.
+  - `test_pilot_fixes.py` (6 tests): retry ok, twice invalid → error with usage kept, invalid AskAnswer → error with usage kept, handoff sentence blocked, the web-unavailable text, and rule messages that never carry values.
+  - `test_cap_uses_the_ledger_when_predictions_undercount`.
+- **Re-estimate for the full run (from the pilot):** ≈ $0.29 expected, ≈ $0.60 pessimistic, ≈ 1.5–2 h.
+- **SDK docs check (openai-agents 0.24, installed source).**
+  - `Runner.run(..., error_handlers={"invalid_final_output": h})` exists (`run_error_handlers.py`). It can only REPLACE the output, so it cannot retry.
+  - The handler is used to read the rule messages; the retry lives in `run_triage`.
