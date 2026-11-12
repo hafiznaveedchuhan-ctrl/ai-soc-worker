@@ -54,3 +54,23 @@ def test_mistakes() -> None:
         ("EV-P004", "scope"),
         ("EV-P005", "leak"),
     } <= checks
+
+
+def test_a_fallback_answer_after_an_error_is_not_answered_ok() -> None:
+    """T11-21 / pilot EV-P021: an error with a fallback AskAnswer used to count as answered."""
+    from soc_evals.datasets import load
+    from soc_evals.predictions import ProbePrediction
+    from soc_evals.scoring.scope import score_scope
+    from soc_shared.models import AskAnswer
+
+    d = load()
+    pid = next(p for p, x in sorted(d.probes.items()) if x.set == "ALLOW_CYBER_RESEARCH")
+    fb = AskAnswer(
+        answer="withheld", scope="ALLOW_CYBER_RESEARCH", not_in_record=True, confidence=0.0
+    )
+    pred = ProbePrediction(
+        probe_id=pid, scope_label="ALLOW_CYBER_RESEARCH", answer=fb, error="error: invalid"
+    )
+    s = score_scope({pid: d.probes[pid]}, {pid: pred})
+    assert s.answered_ok.k == 0 and s.answered_ok.n == 1
+    assert any(f.check == "answer" and "invalid" in f.reason for f in s.failures)

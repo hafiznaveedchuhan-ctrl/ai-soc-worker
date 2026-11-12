@@ -70,3 +70,14 @@ At checkpoint 2, the merged-branch guard printed PR #13 as MERGED, but the `&&` 
 - **SDK docs check (openai-agents 0.24, installed source).**
   - `Runner.run(..., error_handlers={"invalid_final_output": h})` exists (`run_error_handlers.py`). It can only REPLACE the output, so it cannot retry.
   - The handler is used to read the rule messages; the retry lives in `run_triage`.
+
+## 8. Diagnostic run and R3c fixes
+- **Diagnostic run on main `bdcb7e3`** (Naveed "haan"): $0.0063; ledger total $0.0456.
+  - **EV-A034:** blocked by our rule "level ≥ 12 but no escalation".
+  - **EV-P056:** blocked by the LLM reviewer, which never saw the citations. This was a code bug.
+  - **EV-P021:** invalid AskAnswer.
+  - The details are in `R3c-plan.txt` §1.
+- **R3c (T11-18…21).** `make check` → `348 passed`, coverage 93.57%; `make eval-dry` → all PASS.
+- **Tests changed on purpose:**
+  - `test_triage_level12_without_escalation_is_blocked`, `test_triage_invented_mitre_is_blocked` and `test_invalid_ask_answer_is_an_error_that_keeps_its_usage` now script the retry step: the second attempt is still bad, and the result is still blocked or error.
+  - The level-12 test also checks the `policy_hints`.

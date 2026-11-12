@@ -9,6 +9,7 @@ import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from agents import (
     AgentsException,
@@ -56,6 +57,26 @@ def rule_problems(text: str, model: type[BaseModel]) -> list[str]:
     except ValueError:
         return ["output is not valid JSON"]
     return []
+
+
+def policy_hints(rule_level: int | None) -> list[str]:
+    """Code-computed escalation-policy facts the model must not miss (pilot: EV-A034)."""
+    if rule_level is not None and rule_level >= 12:
+        return [
+            f"rule level {rule_level} >= 12 → escalation policy condition 1: "
+            "escalate=true and escalate_condition=1"
+        ]
+    return []
+
+
+def _retry_task(payload: dict[str, Any], problems: list[str]) -> str:
+    return json.dumps(
+        {
+            **payload,
+            "previous_attempt_rejected_because": problems,
+            "instruction": "Return a corrected TriageNote (follow these rules).",
+        }
+    )
 
 
 def _capture_problems(model: type[BaseModel]) -> RunErrorHandlers[WorkerContext]:
@@ -183,7 +204,41 @@ async def run_ask(
         except BudgetExceeded as exc:
             ans = _fallback_answer(ctx, f"Stopped: {exc}.")
             return _done(ctx, t.trace_id, "budget", answer=ans, text=ans.answer)
-        except AgentsException as exc:  # ModelBehaviorError & co.: keep the usage already spent
+        except ModelBehaviorError:
+            # ONE corrective retry (R3c, T11-20): straight to the specialist the Scope Guard chose,
+            # so the scope classifier does not run (or charge) twice. Masked question + rule text.
+            problems = ctx.output_problems or ["invalid output"]
+            ctx.events.append(f"invalid answer: {problems}; retrying once")
+            ctx.output_problems = []
+            specialist = (
+                app.research
+                if ctx.scope and ctx.scope.label == "ALLOW_CYBER_RESEARCH"
+                else app.handbook
+            )
+            retry_input = (
+                f"{masked}\n\n(Your previous answer was rejected: {'; '.join(problems)}. "
+                "Return a valid answer: cite a handbook stable_id, list web sources, or set "
+                "not_in_record=true.)"
+            )
+            try:
+                r = await Runner.run(
+                    specialist,
+                    retry_input,
+                    context=ctx,
+                    hooks=hooks,
+                    max_turns=cfg.max_turns,
+                    run_config=_run_config("soc-ask", ctx),
+                    error_handlers=_capture_problems(AskAnswer),
+                )
+                answer = r.final_output_as(AskAnswer)
+                return _done(ctx, t.trace_id, "ok", answer=answer, text=answer.answer)
+            except (OutputGuardrailTripwireTriggered, AgentsException) as exc:
+                ctx.events.append(f"retry failed {type(exc).__name__}: {ctx.output_problems}")
+                ans = _fallback_answer(
+                    ctx, "The assistant produced an invalid answer. " + SAFE_FALLBACK
+                )
+                return _done(ctx, t.trace_id, "error", answer=ans, text=ans.answer)
+        except AgentsException as exc:  # other agent errors: keep the usage already spent
             ctx.events.append(f"agent error {type(exc).__name__}: {ctx.output_problems}")
             ans = _fallback_answer(
                 ctx, "The assistant produced an invalid answer. " + SAFE_FALLBACK
@@ -251,11 +306,14 @@ async def run_triage(
         masked = mask_alert(WazuhAlert.model_validate(raw), ctx.mask_map)
         ctx.alert_rule_level = masked.rule_level
         ctx.alert_mitre = list(WazuhAlert.model_validate(raw).rule.mitre.id)
-        payload = {
+        payload: dict[str, Any] = {
             "alert": masked.payload,
             "ip_context": masked.ip_context,
             "analyst_context": mask_text(analyst_context, ctx.mask_map) or None,
         }
+        hints = policy_hints(masked.rule_level)
+        if hints:
+            payload["policy_hints"] = hints
         hooks = CostHooks(app.model_names)
         handlers = _capture_problems(TriageNote)
         retries = NOTE_RETRIES
@@ -297,6 +355,15 @@ async def run_triage(
                             error_handlers=handlers,
                         )
                     break
+                except OutputGuardrailTripwireTriggered as exc:
+                    info = exc.guardrail_result.output.output_info or {}
+                    if info.get("source") != "rules" or retries <= 0:
+                        raise  # LLM-reviewer problems (softer) or no retry left → blocked below
+                    problems = list(info.get("problems", []))
+                    ctx.events.append(f"note failed the rules: {problems}"[:400])
+                    retries -= 1
+                    ctx.events.append("retrying once with the rule messages")
+                    task = _retry_task(payload, problems)
                 except ModelBehaviorError:
                     problems = ctx.output_problems or ["invalid output"]
                     ctx.events.append(f"invalid note: {problems}")
@@ -310,13 +377,7 @@ async def run_triage(
                     retries -= 1
                     ctx.output_problems = []
                     ctx.events.append("retrying once with the rule messages")
-                    task = json.dumps(
-                        {
-                            **payload,
-                            "previous_attempt_rejected_because": problems,
-                            "instruction": "Return a corrected TriageNote (follow these rules).",
-                        }
-                    )
+                    task = _retry_task(payload, problems)
             note = r.final_output_as(TriageNote)
             return _done(ctx, t.trace_id, "ok", note=note, text=note.to_text())
         except InputGuardrailTripwireTriggered:

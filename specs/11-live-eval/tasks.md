@@ -36,3 +36,12 @@ Legend: [ ] todo · [~] in progress · [x] done · ⬆ = commit + push (run the 
 | [x] T11-15 | Store `events` in the predictions, scrubbed by `safe_events`. A failed review says which check failed: `review FAILED by rules` or `by llm reviewer`, plus the problems. `run_ask` logs the review problems. The report gets a "Diagnostics" section. The dry recordings were regenerated; the only change is `events: []`, which a script proved. | diagnosis | tests pass |
 | [x] T11-16 | Pilot-2 P056 text against `HANDOFF_RE`: NOT matched. The pilot-3 block of P056 therefore has another cause. The next diagnostic run will show which. P021's "Transferring…" text matches, as intended. | regression check | done (offline) |
 | [x] T11-17 | Pilot-3 recordings and report committed (PR #18). | — | done |
+
+**R3c plan (`R3c-plan.txt`), approved by Naveed on 2026-11-12.**
+
+| ID | Task | Satisfies | Done when |
+|---|---|---|---|
+| [x] T11-18 | The LLM reviewer gets the full AskAnswer draft (`reviewer_text`): answer, citations, web sources, not_in_record. | EV-P056 | `test_llm_reviewer_sees_the_citations` |
+| [x] T11-19 | A deterministic-rules review failure gets the ONE corrective retry; LLM-reviewer rejections are not retried. Adds the code-computed `policy_hints` (level ≥ 12 → condition 1). | EV-A034 | `test_rules_failure_gets_one_corrective_retry_then_ok`, `test_llm_reviewer_rejection_is_not_retried` |
+| [x] T11-20 | `/ask`: ONE retry at the chosen specialist on an invalid AskAnswer; no second scope classifier call. | EV-P021 | `test_invalid_ask_answer_gets_one_retry_at_the_specialist` |
+| [x] T11-21 | Scorer: a probe with an `error` is never "answered ok". | scorer gap | `test_a_fallback_answer_after_an_error_is_not_answered_ok` |

@@ -64,10 +64,11 @@ def score_scope(probes: dict[str, Probe], preds: dict[str, ProbePrediction]) -> 
                 failures.append(Failure(pid, "decline_text", "decline reply is not the exact text"))
         elif probe.set in ALLOW_SETS:
             answered[1] += 1
-            if pred.answer is not None:
+            if pred.answer is not None and pred.error is None:
                 answered[0] += 1
             else:
-                failures.append(Failure(pid, "answer", "no valid AskAnswer"))
+                # a fallback answer after an error is NOT an answer (pilot 2026-11-12, EV-P021)
+                failures.append(Failure(pid, "answer", pred.error or "no valid AskAnswer"))
             if probe.set == "ALLOW_KSOR":
                 page[1] += 1
                 if pred.answer and probe.expected_stable_id in pred.answer.citations:
