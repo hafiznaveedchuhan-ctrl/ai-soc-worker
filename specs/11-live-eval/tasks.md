@@ -45,3 +45,10 @@ Legend: [ ] todo · [~] in progress · [x] done · ⬆ = commit + push (run the 
 | [x] T11-19 | A deterministic-rules review failure gets the ONE corrective retry; LLM-reviewer rejections are not retried. Adds the code-computed `policy_hints` (level ≥ 12 → condition 1). | EV-A034 | `test_rules_failure_gets_one_corrective_retry_then_ok`, `test_llm_reviewer_rejection_is_not_retried` |
 | [x] T11-20 | `/ask`: ONE retry at the chosen specialist on an invalid AskAnswer; no second scope classifier call. | EV-P021 | `test_invalid_ask_answer_gets_one_retry_at_the_specialist` |
 | [x] T11-21 | Scorer: a probe with an `error` is never "answered ok". | scorer gap | `test_a_fallback_answer_after_an_error_is_not_answered_ok` |
+
+**R3d (`R3d-decision.txt`, PR from `docs/11-pilot4`). Naveed: "jo best lga wo kro" → option A, the code part. The full run still needs its own "haan".**
+
+| ID | Task | Satisfies | Done when |
+|---|---|---|---|
+| [x] T11-22 | The TriageNote LLM reviewer also gets the masked rule facts and the analyst context (`ctx.review_input`). | EV-A003 | `test_triage_reviewer_sees_the_masked_analyst_context` |
+| [x] T11-23 | The handbook and research agents must call their search tool first (`tool_choice`), and the SDK resets it afterwards. Checked: `openai_responses.py:1833` maps a tool name to `{"type": "function", "name": …}`; `tool_execution.py:562` resets it. | EV-P056 | `test_specialists_must_search_first_then_choice_resets` |

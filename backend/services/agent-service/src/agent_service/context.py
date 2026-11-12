@@ -24,6 +24,9 @@ class WorkerContext:
     scope: ScopeVerdict | None = None
     alert_rule_level: int | None = None
     alert_mitre: list[str] = field(default_factory=list)
+    # Masked analyst context + rule facts given with the alert: the LLM reviewer must see them so it
+    # does not flag facts that ARE in the input (pilot 4, EV-A003, T11-22).
+    review_input: str = ""
     seen_stable_ids: set[str] = field(default_factory=set)  # every stable_id KSOR returned this run
     web_urls: set[str] = field(default_factory=set)  # every URL web_search returned this run
     injection_suspected: bool = False

@@ -178,12 +178,18 @@ def review_problems(output: TriageNote | AskAnswer, ctx: WorkerContext) -> list[
     return problems
 
 
-def reviewer_text(output: TriageNote | AskAnswer) -> str:
+def reviewer_text(output: TriageNote | AskAnswer, ctx: WorkerContext | None = None) -> str:
     """The FULL draft for the LLM reviewer. An AskAnswer's citations, web sources and
     not_in_record flag are part of the draft (pilot 2026-11-12: the reviewer saw only the answer
-    text and rejected a correctly cited answer as uncited). Masked data only."""
+    text and rejected a correctly cited answer as uncited). A TriageNote comes with the masked rule
+    facts + analyst context it was built from (pilot 4, EV-A003). Masked data only."""
     if isinstance(output, TriageNote):
-        return output.to_text()
+        given = ctx.review_input if ctx and ctx.review_input else ""
+        return output.to_text() + (
+            f"\n\nINPUT GIVEN WITH THE ALERT (facts here are not inventions):\n{given}"
+            if given
+            else ""
+        )
     web = ", ".join(f"unverified web source ({w.url})" for w in output.web_sources) or "none"
     return (
         f"{output.answer}\n\nCitations (handbook stable_ids): "
@@ -217,7 +223,7 @@ def make_output_guardrail(llm_review: Reviewer | None) -> Any:
         source = "rules"
         if not problems and llm_review is not None:
             source = "llm reviewer"
-            verdict = await llm_review(reviewer_text(output), ctx.context)
+            verdict = await llm_review(reviewer_text(output, ctx.context), ctx.context)
             problems = [] if verdict.ok else verdict.problems or ["reviewer rejected the draft"]
         # which check failed is kept for diagnosis (pilot 3, T11-15); texts are masked-only
         ctx.context.events.append(
