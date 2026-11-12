@@ -357,16 +357,21 @@ async def test_triage_level12_without_escalation_is_blocked(tmp_path: Path) -> N
         mitre_ids=["T1059.001"],
     )
     script = triage_script(note)
-    script["triage"] = [script["triage"][0], script["triage"][3]]
+    # the same bad note twice: the rules fail → ONE corrective retry (R3c) → still bad → blocked
+    script["triage"] = [script["triage"][0], script["triage"][3], script["triage"][3]]
     models = scripted(script)
     app, cfg, deps = build_offline(models, tmp_path)
     r = await run_triage(app, cfg, deps, "EV-A034", user_id="u")
     assert r.status == "blocked"
     assert any("condition 1" in e for e in r.events)
+    assert "retrying once with the rule messages" in r.events
+    first = str(models["triage"].calls[0].input)
+    assert "policy_hints" in first and "escalate_condition=1" in first  # code-computed hint
 
 
 async def test_triage_invented_mitre_is_blocked(tmp_path: Path) -> None:
     script = triage_script(triage_note(mitre_ids=["T1078", "T9999"]))
+    script["triage"].append(script["triage"][-1])  # the retry repeats the invented id
     app, cfg, deps = build_offline(scripted(script), tmp_path)
     r = await run_triage(app, cfg, deps, "EV-A003", user_id="u", approve=lambda i: _true())
     assert r.status == "blocked"

@@ -108,6 +108,7 @@ async def test_invalid_ask_answer_is_an_error_that_keeps_its_usage(tmp_path: Pat
             "handbook": [
                 call("search_handbook", {"query": "event 4625 meaning"}, "s1"),
                 msg({"answer": "x", "scope": "ALLOW_KSOR", "confidence": 7}),  # confidence > 1
+                msg({"answer": "x", "scope": "ALLOW_KSOR", "confidence": 7}),  # retry: still bad
             ],
         }
     )
@@ -168,3 +169,92 @@ async def test_web_unavailable_gets_the_plain_not_in_record_answer(tmp_path: Pat
     assert "unavailable" in str(models["research"].calls[1].input)  # the tool said so
     instructions = app.ask_entry.handoffs[1].instructions  # type: ignore[union-attr]
     assert "never a sentence about transferring" in str(instructions)
+
+
+# ------------------------------------------------------------------ R3c (diagnostic run findings)
+async def test_llm_reviewer_sees_the_citations(tmp_path: Path) -> None:
+    """T11-18 / EV-P056: the reviewer was given only the answer text and called it uncited."""
+    e4625 = "knowledge/windows-events/event-4625"  # a page the fake KSOR really returns
+    models = scripted(
+        {
+            "scope": [msg(ScopeVerdict(label="ALLOW_KSOR", reason="event meaning"))],
+            "triage": [call("transfer_to_soc_handbook_agent", {}, "h1")],
+            "handbook": [
+                call("search_handbook", {"query": "event 4625 meaning"}, "s1"),
+                msg(
+                    AskAnswer(
+                        answer="Event 4625 is a failed logon.",
+                        scope="ALLOW_KSOR",
+                        citations=[e4625],
+                        confidence=0.8,
+                    )
+                ),
+            ],
+            "reviewer": [msg(ReviewVerdict(ok=True))],
+        }
+    )
+    app, cfg, _ = build_offline(models, tmp_path)
+    r = await run_ask(app, cfg, "What does event 4625 mean?", user_id="u", session_id="s")
+    seen = str(models["reviewer"].calls[0].input)
+    assert "Citations (handbook stable_ids)" in seen and e4625 in seen
+    assert "not_in_record: false" in seen
+    assert r.status == "ok"
+
+
+async def test_rules_failure_gets_one_corrective_retry_then_ok(tmp_path: Path) -> None:
+    """T11-19 / EV-A034: escalate=false on a level >= 12 alert → rule problem → retry → fixed."""
+    from agent_service.flows import policy_hints
+
+    assert policy_hints(12) and policy_hints(3) == []
+    lvl12 = {
+        **good_note(),
+        "alert_id": "EV-A034",
+        "rule_id": "91844",
+        "rule_level": 12,
+        "mitre_ids": ["T1059.001"],
+    }
+    no_esc = {**lvl12, "escalate": False, "escalate_condition": None}
+    fixed = {**lvl12, "escalate": True, "escalate_condition": 1}
+    models = scripted(triage_steps(no_esc, fixed))
+    app, cfg, deps = build_offline(models, tmp_path)
+    r = await run_triage(app, cfg, deps, "EV-A034", user_id="u")
+    assert r.status == "ok" and r.note is not None and r.note.escalate_condition == 1, r.events
+    assert any(e.startswith("note failed the rules:") and "condition 1" in e for e in r.events)
+    assert "previous_attempt_rejected_because" in str(models["triage"].calls[-1].input)
+
+
+async def test_llm_reviewer_rejection_is_not_retried(tmp_path: Path) -> None:
+    script = triage_steps(good_note(), good_note())
+    script["reviewer"] = [msg(ReviewVerdict(ok=True)), msg(ReviewVerdict(ok=False, problems=["x"]))]
+    models = scripted(script)
+    app, cfg, deps = build_offline(models, tmp_path)
+    r = await run_triage(app, cfg, deps, "EV-A003", user_id="u")
+    assert r.status == "blocked" and "retrying once with the rule messages" not in r.events
+
+
+async def test_invalid_ask_answer_gets_one_retry_at_the_specialist(tmp_path: Path) -> None:
+    """T11-20 / EV-P021: no citation, no web source, no not_in_record → retry → valid."""
+    nir = "Not in this record: web search is unavailable, so this cannot be researched right now."
+    models = scripted(
+        {
+            "scope": [msg(ScopeVerdict(label="ALLOW_CYBER_RESEARCH", reason="not in KSOR"))],
+            "triage": [call("transfer_to_cyber_research_agent", {}, "h1")],
+            "research": [
+                msg({"answer": "ACL logging helps.", "scope": "ALLOW_CYBER_RESEARCH"}),
+                msg(
+                    {
+                        "answer": nir,
+                        "scope": "ALLOW_CYBER_RESEARCH",
+                        "not_in_record": True,
+                        "confidence": 0,
+                    }
+                ),
+            ],
+            "reviewer": [msg(ReviewVerdict(ok=True))],
+        }
+    )
+    app, cfg, _ = build_offline(models, tmp_path)
+    r = await run_ask(app, cfg, "How do I tune ASA ACL logging?", user_id="u", session_id="s")
+    assert r.status == "ok" and r.text == nir, r.events
+    assert len(models["scope"].calls) == 1  # the retry skips the scope classifier
+    assert "previous answer was rejected" in str(models["research"].calls[-1].input)

@@ -178,6 +178,20 @@ def review_problems(output: TriageNote | AskAnswer, ctx: WorkerContext) -> list[
     return problems
 
 
+def reviewer_text(output: TriageNote | AskAnswer) -> str:
+    """The FULL draft for the LLM reviewer. An AskAnswer's citations, web sources and
+    not_in_record flag are part of the draft (pilot 2026-11-12: the reviewer saw only the answer
+    text and rejected a correctly cited answer as uncited). Masked data only."""
+    if isinstance(output, TriageNote):
+        return output.to_text()
+    web = ", ".join(f"unverified web source ({w.url})" for w in output.web_sources) or "none"
+    return (
+        f"{output.answer}\n\nCitations (handbook stable_ids): "
+        f"{', '.join(output.citations) or 'none'}\nWeb sources: {web}\n"
+        f"not_in_record: {str(output.not_in_record).lower()}"
+    )
+
+
 class ReviewVerdict(BaseModel):
     ok: bool
     problems: list[str] = []
@@ -203,15 +217,15 @@ def make_output_guardrail(llm_review: Reviewer | None) -> Any:
         source = "rules"
         if not problems and llm_review is not None:
             source = "llm reviewer"
-            text = output.to_text() if isinstance(output, TriageNote) else output.answer
-            verdict = await llm_review(text, ctx.context)
+            verdict = await llm_review(reviewer_text(output), ctx.context)
             problems = [] if verdict.ok else verdict.problems or ["reviewer rejected the draft"]
         # which check failed is kept for diagnosis (pilot 3, T11-15); texts are masked-only
         ctx.context.events.append(
             "review ok" if not problems else f"review FAILED by {source}: {problems}"[:400]
         )
         return GuardrailFunctionOutput(
-            output_info={"problems": problems}, tripwire_triggered=bool(problems)
+            output_info={"problems": problems, "source": source if problems else None},
+            tripwire_triggered=bool(problems),
         )
 
     return note_reviewer
