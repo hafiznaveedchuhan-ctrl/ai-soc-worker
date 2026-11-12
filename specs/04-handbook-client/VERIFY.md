@@ -17,3 +17,9 @@ Status: **filled (offline parts)** by Claude 2026-11-12 — the live demo (1.2�
 - No live handbook search was run by Claude.
 
 ## 5. Naveed's verdict
+
+## Live evidence (session 2, 2026-11-12, Naveed "haan")
+The live handbook MCP (`npm run serve`) answered the free pre-flight (`tools/list` → 3 tools) and the real searches in pilots 2–4.
+- **EV-P056 (pilot 2):** the answer cited `knowledge/windows-events/event-4624`, the expected page.
+- **Triage notes:** they cited real stable_ids, for example `knowledge/sysmon/event-12-13-14-registry` and `knowledge/mitre/t1059-001-powershell`.
+- **Records:** `specs/11-live-eval/VERIFY.md` §7–8 and `backend/evals/recordings/paid/`.

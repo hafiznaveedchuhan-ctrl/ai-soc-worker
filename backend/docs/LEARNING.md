@@ -380,3 +380,20 @@ Azure Container Registry + Container Apps with OIDC; needs paid-service decision
   The cap is checked BEFORE each item, so one item can overshoot by at most its own per-run budget ($0.05).
 - **Score what ran.** A pilot or a capped run is scored on `subset(data, outcome)`. The report then says "partial k/n" instead of counting the missing items as failures.
 - **Lesson (incident).** `gh pr list --head B --state merged` exits 0 even when it finds a merged PR. Chaining it with `&&` checks nothing. The guard must test the OUTPUT: `test -z "$(gh pr list --head B --state merged)"`.
+
+## 15. Feature 11 — what the live pilots taught (R3)
+- **Offline-green is not live-green.** Four pilots ($0.06 in total) found bugs that 307 offline tests could not:
+  - `format: uri` is rejected by OpenAI strict outputs;
+  - a blank `.env` line became the model name;
+  - usage was lost on errors;
+  - the LLM reviewer saw neither the citations nor the input context;
+  - specialists answered without searching.
+- **Make every failure explain itself.** A failure without a reason costs another paid run. Storing the masked flow events in every prediction, and printing them in a "Diagnostics" section, turned each pilot into a precise bug list.
+- **Constrain the model with code, not with prompts.** These worked:
+  - `tool_choice` to force the first search; the SDK resets it after the call;
+  - code-computed `policy_hints` (level ≥ 12 → condition 1);
+  - deterministic review rules;
+  - ONE corrective retry fed only the rule messages (`include_input=False`, so no data leaks back).
+  
+  Prompt sentences alone did not hold for gpt-5-nano.
+- **Small pilots are noisy.** The same 6 items gave different failures from run to run. Decide model upgrades (constitution VI.2) on the full 135-item run, not on a pilot.
