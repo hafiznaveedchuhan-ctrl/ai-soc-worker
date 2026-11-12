@@ -104,3 +104,9 @@ def test_bad_ip_in_ip_field_falls_back_to_text(win_4625: dict[str, Any]) -> None
     win_4625["data"]["win"]["eventdata"]["ipAddress"] = "::ffff:203.0.113.45 (mapped)"
     out, _ = masked(win_4625)
     assert out.payload["data"]["win"]["eventdata"]["ipAddress"].startswith("<IP-")
+
+
+def test_builtin_group_names_stay_visible(win_4625: dict[str, Any]) -> None:
+    win_4625["data"]["win"]["eventdata"]["targetUserName"] = "Administrators"
+    out, _ = masked(win_4625)
+    assert out.payload["data"]["win"]["eventdata"]["targetUserName"] == "Administrators"

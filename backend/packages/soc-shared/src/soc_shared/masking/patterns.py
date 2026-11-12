@@ -52,6 +52,15 @@ WELL_KNOWN_PRINCIPALS = frozenset(
         "DefaultAccount",
         "krbtgt",
         "root",
+        # Built-in groups (4728/4732/4756 put the GROUP name in targetUserName). Condition 6
+        # ("added to Administrators") cannot be seen if these are masked.
+        "Administrators",
+        "Domain Admins",
+        "Enterprise Admins",
+        "Schema Admins",
+        "Backup Operators",
+        "Remote Desktop Users",
+        "Users",
         "-",
         "",
     )

@@ -1,0 +1,21 @@
+alert_id,analyst_context
+EV-A003,Wazuh rule 60204 fired for the same account and source at 02:41 UTC (alert EV-A001).
+EV-A004,5 failed passwords for bob from the same IP between 09:02 and 09:10 UTC; no brute-force rule fired.
+EV-A005,"31 lockouts (4740) for 31 different accounts in 10 minutes, all with caller computer LAB-WS03."
+EV-A007,"The member SID ...-1145 is the local account helpdesk2, created at 03:18 UTC (event 4720) by LAB\alice. No change ticket."
+EV-A008,Change ticket CHG-2001: adm-frank adds erin to Administrators on lab-dc01 during the Sunday window.
+EV-A009,No change ticket for lab-ws02. LAB\alice is not an IT admin.
+EV-A010,Created by root via sudo from the SSH session of user deploy; no change ticket.
+EV-A012,Change ticket CHG-2004: adm-frank upgrades the Wazuh agent on lab-srv03 during the Sunday window.
+EV-A014,"Change ticket CHG-2003 documents: archive and clear the Security log on lab-srv03 after disk-full incident, by adm-frank."
+EV-A018,"LAB\alice also logged on with Type 3 to lab-srv02, lab-sql01 and lab-bkp01 between 06:25 and 06:31 UTC."
+EV-A021,Change ticket CHG-2002: adm-frank patches lab-srv02 during the Sunday window.
+EV-A022,No change ticket found for lab-srv03 or adm-greg.
+EV-A023,svc-backup is listed in etc/lists/service-accounts with allowed host lab-bkp01.
+EV-A024,"One of 220 FIM changes under /srv/backup between 01:05 and 02:40 UTC, all by svc-backup."
+EV-A025,carol logged on successfully at 08:03:40 UTC; 2 failures in total.
+EV-A026,henry's password expired yesterday; his mapped drive keeps retrying with the old password.
+EV-A027,svc-sql is listed in etc/lists/service-accounts with allowed host lab-sql01.
+EV-A028,"svc-web is listed with allowed host lab-web01 and scheduled job 'log-rotate' (Type 4, 04:30 daily)."
+EV-A029,10.10.50.5 is in etc/lists/approved-scanners; recorded schedule: Tuesday 20:00–22:00 UTC weekly.
+EV-A030,10.10.50.5 is in etc/lists/approved-scanners; recorded schedule: Tuesday 20:00–22:00 UTC weekly.

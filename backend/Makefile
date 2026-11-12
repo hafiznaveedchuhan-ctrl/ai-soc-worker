@@ -7,7 +7,8 @@ UV := uv
 SRC := packages/soc-shared/src evals/src evals/scripts scripts
 TESTS := packages/soc-shared/tests evals/tests tests
 
-.PHONY: help dev test cov lint fmt typecheck check eval-dry demo-masking clean \
+.PHONY: help dev test cov lint fmt typecheck check eval-dry eval-stats eval-review eval-recordings \
+        demo-masking clean \
         eval demo-handbook demo-ask demo-triage docker-build up down
 
 help: ## Show this list
@@ -35,8 +36,19 @@ typecheck: ## mypy --strict
 
 check: lint typecheck cov ## Every quality gate (what CI runs)
 
-eval-dry: ## Mocked eval run (free) — added in feature 02
-	@echo "eval-dry: not implemented until feature 02"
+eval-dry: ## FREE offline eval: validate datasets + score recorded predictions + write report
+	$(UV) run python -m soc_evals dry
+
+eval-stats: ## Eval dataset composition (counts, verified labels)
+	$(UV) run python -m soc_evals stats
+
+eval-review: ## Write the label review sheet for Naveed (evals/review/labels-review.md)
+	$(UV) run python -m soc_evals review
+
+eval-recordings: ## Rebuild alerts/labels/probes + dry recordings from the builder scripts
+	$(UV) run python evals/scripts/build_alerts.py
+	$(UV) run python evals/scripts/build_probes.py
+	$(UV) run python -m soc_evals recordings
 
 demo-masking: ## Show one lab alert before/after masking + leak check
 	$(UV) run python scripts/demo_masking.py
@@ -45,8 +57,8 @@ clean: ## Remove caches and reports
 	rm -rf .pytest_cache .mypy_cache .ruff_cache .hypothesis htmlcov .coverage coverage.xml
 
 # ----- later features (stubs: they say which feature adds them) -----
-eval: ## PAID eval run — feature 02 (needs Naveed's "haan")
-	@echo "eval: added in feature 02 (paid; needs Naveed's haan)"; exit 1
+eval: ## PAID eval run (needs Naveed's "haan"; pipeline from features 05/06)
+	$(UV) run python -m soc_evals paid
 demo-handbook: ## Handbook MCP smoke test — feature 04
 	@echo "demo-handbook: added in feature 04"; exit 1
 demo-ask: ## /ask flow in the terminal — feature 05

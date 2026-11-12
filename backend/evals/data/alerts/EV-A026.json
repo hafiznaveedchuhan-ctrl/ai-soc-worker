@@ -1,0 +1,51 @@
+{
+  "id": "EV-A026",
+  "timestamp": "2026-11-11T08:30:40Z",
+  "rule": {
+    "id": "60204",
+    "level": 10,
+    "description": "Multiple Windows Logon Failures",
+    "groups": [
+      "windows",
+      "authentication_failures"
+    ],
+    "mitre": {
+      "id": [
+        "T1110"
+      ]
+    }
+  },
+  "agent": {
+    "id": "003",
+    "name": "lab-ws03",
+    "ip": "10.10.20.17"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "location": "EventChannel",
+  "data": {
+    "win": {
+      "system": {
+        "eventID": "4625",
+        "computer": "lab-ws03.lab.local",
+        "channel": "Security",
+        "providerName": "Microsoft-Windows-Security-Auditing",
+        "systemTime": "2026-11-11T08:30:40Z"
+      },
+      "eventdata": {
+        "targetUserName": "henry",
+        "targetDomainName": "LAB",
+        "ipAddress": "10.10.20.17",
+        "logonType": "3",
+        "status": "0xc000006d",
+        "subStatus": "0xc0000071",
+        "workstationName": "LAB-WS03"
+      }
+    }
+  },
+  "full_log": "9 network logon failures for LAB\\henry from his own workstation, sub-status 0xC0000071 (expired password)."
+}

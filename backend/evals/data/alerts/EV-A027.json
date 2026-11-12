@@ -1,0 +1,46 @@
+{
+  "id": "EV-A027",
+  "timestamp": "2026-11-11T06:00:02Z",
+  "rule": {
+    "id": "67024",
+    "level": 3,
+    "description": "Service logon event registered from non standard service account.",
+    "groups": [
+      "windows"
+    ],
+    "mitre": {
+      "id": []
+    }
+  },
+  "agent": {
+    "id": "008",
+    "name": "lab-sql01",
+    "ip": "10.10.30.11"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "location": "EventChannel",
+  "data": {
+    "win": {
+      "system": {
+        "eventID": "4624",
+        "computer": "lab-sql01.lab.local",
+        "channel": "Security",
+        "providerName": "Microsoft-Windows-Security-Auditing",
+        "systemTime": "2026-11-11T06:00:02Z"
+      },
+      "eventdata": {
+        "targetUserName": "svc-sql",
+        "targetDomainName": "LAB",
+        "logonType": "5",
+        "ipAddress": "-",
+        "workstationName": "-"
+      }
+    }
+  },
+  "full_log": "Service logon (Type 5) for LAB\\svc-sql on lab-sql01."
+}

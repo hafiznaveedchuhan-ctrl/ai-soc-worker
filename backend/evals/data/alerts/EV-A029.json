@@ -1,0 +1,38 @@
+{
+  "id": "EV-A029",
+  "timestamp": "2026-11-10T20:05:13Z",
+  "rule": {
+    "id": "5710",
+    "level": 5,
+    "description": "sshd: Attempt to login using a non-existent user",
+    "groups": [
+      "syslog",
+      "sshd",
+      "authentication_failed"
+    ],
+    "mitre": {
+      "id": [
+        "T1110.001",
+        "T1021.004"
+      ]
+    }
+  },
+  "agent": {
+    "id": "004",
+    "name": "lab-srv02",
+    "ip": "192.168.56.20"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "sshd"
+  },
+  "location": "/var/log/auth.log",
+  "data": {
+    "srcip": "10.10.50.5",
+    "srcport": "41001",
+    "srcuser": "test"
+  },
+  "full_log": "Nov 10 20:05:13 lab-srv02 sshd[1777]: Invalid user test from 10.10.50.5 port 41001"
+}

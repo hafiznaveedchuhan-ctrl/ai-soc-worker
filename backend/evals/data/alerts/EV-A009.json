@@ -1,0 +1,49 @@
+{
+  "id": "EV-A009",
+  "timestamp": "2026-11-11T03:18:02Z",
+  "rule": {
+    "id": "60109",
+    "level": 8,
+    "description": "User account enabled or created",
+    "groups": [
+      "windows",
+      "adduser",
+      "account_changed"
+    ],
+    "mitre": {
+      "id": [
+        "T1098"
+      ]
+    }
+  },
+  "agent": {
+    "id": "002",
+    "name": "lab-ws02",
+    "ip": "10.10.20.16"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "location": "EventChannel",
+  "data": {
+    "win": {
+      "system": {
+        "eventID": "4720",
+        "computer": "lab-ws02.lab.local",
+        "channel": "Security",
+        "providerName": "Microsoft-Windows-Security-Auditing",
+        "systemTime": "2026-11-11T03:18:02Z"
+      },
+      "eventdata": {
+        "targetUserName": "helpdesk2",
+        "targetDomainName": "LAB-WS02",
+        "subjectUserName": "alice",
+        "subjectDomainName": "LAB"
+      }
+    }
+  },
+  "full_log": "A user account was created: helpdesk2 on LAB-WS02 by LAB\\alice."
+}

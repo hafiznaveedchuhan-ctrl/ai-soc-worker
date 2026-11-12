@@ -1,0 +1,47 @@
+{
+  "id": "EV-A013",
+  "timestamp": "2026-11-11T03:01:12Z",
+  "rule": {
+    "id": "60117",
+    "level": 9,
+    "description": "Windows audit log was cleared",
+    "groups": [
+      "windows",
+      "logs_cleared"
+    ],
+    "mitre": {
+      "id": [
+        "T1070.004"
+      ]
+    }
+  },
+  "agent": {
+    "id": "001",
+    "name": "lab-ws01",
+    "ip": "10.10.20.15"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "location": "EventChannel",
+  "data": {
+    "win": {
+      "system": {
+        "eventID": "1102",
+        "computer": "lab-ws01.lab.local",
+        "channel": "Security",
+        "providerName": "Microsoft-Windows-Security-Auditing",
+        "systemTime": "2026-11-11T03:01:12Z"
+      },
+      "eventdata": {},
+      "logFileCleared": {
+        "subjectUserName": "alice",
+        "subjectDomainName": "LAB"
+      }
+    }
+  },
+  "full_log": "The audit log was cleared. Subject: LAB\\alice on lab-ws01."
+}

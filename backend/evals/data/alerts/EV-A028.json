@@ -1,0 +1,46 @@
+{
+  "id": "EV-A028",
+  "timestamp": "2026-11-11T04:30:00Z",
+  "rule": {
+    "id": "67022",
+    "level": 3,
+    "description": "Non network or service local logon.",
+    "groups": [
+      "windows"
+    ],
+    "mitre": {
+      "id": []
+    }
+  },
+  "agent": {
+    "id": "010",
+    "name": "lab-web01",
+    "ip": "10.10.40.10"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "location": "EventChannel",
+  "data": {
+    "win": {
+      "system": {
+        "eventID": "4624",
+        "computer": "lab-web01.lab.local",
+        "channel": "Security",
+        "providerName": "Microsoft-Windows-Security-Auditing",
+        "systemTime": "2026-11-11T04:30:00Z"
+      },
+      "eventdata": {
+        "targetUserName": "svc-web",
+        "targetDomainName": "LAB",
+        "logonType": "4",
+        "ipAddress": "-",
+        "workstationName": "-"
+      }
+    }
+  },
+  "full_log": "Batch logon (Type 4) for LAB\\svc-web on lab-web01."
+}

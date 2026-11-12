@@ -1,0 +1,37 @@
+{
+  "id": "EV-A024",
+  "timestamp": "2026-11-11T02:31:55Z",
+  "rule": {
+    "id": "550",
+    "level": 7,
+    "description": "Integrity checksum changed.",
+    "groups": [
+      "ossec",
+      "syscheck",
+      "syscheck_entry_modified"
+    ],
+    "mitre": {
+      "id": [
+        "T1565.001"
+      ]
+    }
+  },
+  "agent": {
+    "id": "009",
+    "name": "lab-bkp01",
+    "ip": "10.10.30.40"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "syscheck_integrity_changed"
+  },
+  "location": "syscheck",
+  "full_log": "File '/srv/backup/catalog/index.db' modified. Changed attributes: size, mtime, sha256.",
+  "syscheck": {
+    "path": "/srv/backup/catalog/index.db",
+    "event": "modified",
+    "uname_after": "svc-backup"
+  }
+}

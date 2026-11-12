@@ -1,0 +1,37 @@
+{
+  "id": "EV-A019",
+  "timestamp": "2026-11-11T11:05:30Z",
+  "rule": {
+    "id": "5763",
+    "level": 10,
+    "description": "sshd: brute force trying to get access to the system. Authentication failed.",
+    "groups": [
+      "syslog",
+      "sshd",
+      "authentication_failures"
+    ],
+    "mitre": {
+      "id": [
+        "T1110"
+      ]
+    }
+  },
+  "agent": {
+    "id": "006",
+    "name": "lab-srv04",
+    "ip": "10.20.30.40"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "sshd"
+  },
+  "location": "/var/log/auth.log",
+  "data": {
+    "srcip": "10.10.20.17",
+    "srcport": "55231",
+    "dstuser": "deploy"
+  },
+  "full_log": "Nov 11 11:05:30 lab-srv04 sshd[4410]: Failed password for deploy from 10.10.20.17 port 55231 ssh2"
+}

@@ -1,0 +1,46 @@
+{
+  "id": "EV-A023",
+  "timestamp": "2026-11-11T01:15:09Z",
+  "rule": {
+    "id": "67028",
+    "level": 3,
+    "description": "Special privileges assigned to new logon.",
+    "groups": [
+      "windows"
+    ],
+    "mitre": {
+      "id": [
+        "T1484"
+      ]
+    }
+  },
+  "agent": {
+    "id": "009",
+    "name": "lab-bkp01",
+    "ip": "10.10.30.40"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "location": "EventChannel",
+  "data": {
+    "win": {
+      "system": {
+        "eventID": "4672",
+        "computer": "lab-bkp01.lab.local",
+        "channel": "Security",
+        "providerName": "Microsoft-Windows-Security-Auditing",
+        "systemTime": "2026-11-11T01:15:09Z"
+      },
+      "eventdata": {
+        "subjectUserName": "svc-backup",
+        "subjectDomainName": "LAB",
+        "privilegeList": "SeBackupPrivilege SeRestorePrivilege"
+      }
+    }
+  },
+  "full_log": "Special privileges assigned to new logon: LAB\\svc-backup (SeBackupPrivilege)."
+}

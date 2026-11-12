@@ -1,0 +1,49 @@
+{
+  "id": "EV-A005",
+  "timestamp": "2026-11-11T07:02:55Z",
+  "rule": {
+    "id": "60115",
+    "level": 9,
+    "description": "User account locked out (multiple login errors)",
+    "groups": [
+      "windows",
+      "account_changed"
+    ],
+    "mitre": {
+      "id": [
+        "T1110",
+        "T1531"
+      ]
+    }
+  },
+  "agent": {
+    "id": "007",
+    "name": "lab-dc01",
+    "ip": "10.10.10.5"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "location": "EventChannel",
+  "data": {
+    "win": {
+      "system": {
+        "eventID": "4740",
+        "computer": "lab-dc01.lab.local",
+        "channel": "Security",
+        "providerName": "Microsoft-Windows-Security-Auditing",
+        "systemTime": "2026-11-11T07:02:55Z"
+      },
+      "eventdata": {
+        "targetUserName": "dave",
+        "targetDomainName": "LAB",
+        "subjectUserName": "LAB-DC01$",
+        "callerComputerName": "LAB-WS03"
+      }
+    }
+  },
+  "full_log": "A user account was locked out: LAB\\dave, caller computer LAB-WS03."
+}

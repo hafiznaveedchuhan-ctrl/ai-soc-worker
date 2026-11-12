@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 
-from soc_shared.masking import MaskMap, find_unmasked_pii, mask_alert
+from soc_shared.masking import MaskMap, find_leaks, find_unmasked_pii, mask_alert
 from soc_shared.models import Verdict, WazuhAlert
 
 from soc_evals.datasets import AlertLabel
@@ -30,11 +30,11 @@ class TriageScores:
     failures: list[Failure] = field(default_factory=list)
 
 
-def raw_values(alert: WazuhAlert) -> list[str]:
-    """The raw IP/user/host/email values of an alert (found by masking it once)."""
+def alert_mask_map(alert: WazuhAlert) -> MaskMap:
+    """The alert's raw IP/user/host/email values, found by masking it once."""
     m = MaskMap()
     mask_alert(alert, m)
-    return [e.value for e in m.to_storage() if len(e.value) >= 3]
+    return m
 
 
 def score_triage(
@@ -80,7 +80,7 @@ def score_triage(
             )
         if note.escalate and label.escalate:
             cond_n += 1
-            if note.escalate_condition == label.escalate_condition:
+            if note.escalate_condition in {label.escalate_condition, *label.also_conditions}:
                 cond_k += 1
             else:
                 failures.append(
@@ -102,8 +102,8 @@ def score_triage(
             mitre_k += 1
         cite_k += 1  # a parsed TriageNote already passed the cite-or-abstain validators
         text = pred.output_text if pred else ""
-        leaked = bool(find_unmasked_pii(text)) or any(
-            r.casefold() in text.casefold() for r in raw_values(alerts[aid])
+        leaked = bool(find_unmasked_pii(text)) or bool(
+            find_leaks(text, alert_mask_map(alerts[aid]))
         )
         if leaked:
             failures.append(Failure(aid, "leak", "raw IP/user/host/email in output"))

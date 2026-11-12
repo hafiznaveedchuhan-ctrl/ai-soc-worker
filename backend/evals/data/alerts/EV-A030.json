@@ -1,0 +1,37 @@
+{
+  "id": "EV-A030",
+  "timestamp": "2026-11-10T20:41:50Z",
+  "rule": {
+    "id": "5712",
+    "level": 10,
+    "description": "sshd: brute force trying to get access to the system. Non existent user.",
+    "groups": [
+      "syslog",
+      "sshd",
+      "authentication_failures"
+    ],
+    "mitre": {
+      "id": [
+        "T1110"
+      ]
+    }
+  },
+  "agent": {
+    "id": "010",
+    "name": "lab-web01",
+    "ip": "10.10.40.10"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "sshd"
+  },
+  "location": "/var/log/auth.log",
+  "data": {
+    "srcip": "10.10.50.5",
+    "srcport": "41877",
+    "srcuser": "admin"
+  },
+  "full_log": "Nov 10 20:41:50 lab-web01 sshd[2002]: Invalid user admin from 10.10.50.5 port 41877"
+}

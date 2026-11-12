@@ -1,0 +1,35 @@
+{
+  "id": "EV-A010",
+  "timestamp": "2026-11-11T03:09:51Z",
+  "rule": {
+    "id": "5902",
+    "level": 8,
+    "description": "New user added to the system.",
+    "groups": [
+      "syslog",
+      "adduser"
+    ],
+    "mitre": {
+      "id": [
+        "T1136"
+      ]
+    }
+  },
+  "agent": {
+    "id": "004",
+    "name": "lab-srv02",
+    "ip": "192.168.56.20"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "useradd"
+  },
+  "location": "/var/log/auth.log",
+  "data": {
+    "dstuser": "backupx",
+    "uid": "1007"
+  },
+  "full_log": "Nov 11 03:09:51 lab-srv02 useradd[3302]: new user: name=backupx, UID=1007, GID=1007, home=/home/backupx"
+}

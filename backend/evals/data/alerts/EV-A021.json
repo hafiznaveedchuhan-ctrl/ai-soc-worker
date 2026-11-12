@@ -1,0 +1,46 @@
+{
+  "id": "EV-A021",
+  "timestamp": "2026-11-08T23:10:44Z",
+  "rule": {
+    "id": "67028",
+    "level": 3,
+    "description": "Special privileges assigned to new logon.",
+    "groups": [
+      "windows"
+    ],
+    "mitre": {
+      "id": [
+        "T1484"
+      ]
+    }
+  },
+  "agent": {
+    "id": "004",
+    "name": "lab-srv02",
+    "ip": "192.168.56.20"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "location": "EventChannel",
+  "data": {
+    "win": {
+      "system": {
+        "eventID": "4672",
+        "computer": "lab-srv02.lab.local",
+        "channel": "Security",
+        "providerName": "Microsoft-Windows-Security-Auditing",
+        "systemTime": "2026-11-08T23:10:44Z"
+      },
+      "eventdata": {
+        "subjectUserName": "adm-frank",
+        "subjectDomainName": "LAB",
+        "privilegeList": "SeDebugPrivilege SeTakeOwnershipPrivilege"
+      }
+    }
+  },
+  "full_log": "Special privileges assigned to new logon: LAB\\adm-frank."
+}

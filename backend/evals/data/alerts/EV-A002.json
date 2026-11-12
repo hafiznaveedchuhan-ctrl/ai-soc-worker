@@ -1,0 +1,37 @@
+{
+  "id": "EV-A002",
+  "timestamp": "2026-11-11T03:05:44Z",
+  "rule": {
+    "id": "5763",
+    "level": 10,
+    "description": "sshd: brute force trying to get access to the system. Authentication failed.",
+    "groups": [
+      "syslog",
+      "sshd",
+      "authentication_failures"
+    ],
+    "mitre": {
+      "id": [
+        "T1110"
+      ]
+    }
+  },
+  "agent": {
+    "id": "004",
+    "name": "lab-srv02",
+    "ip": "192.168.56.20"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "sshd"
+  },
+  "location": "/var/log/auth.log",
+  "data": {
+    "srcip": "198.51.100.77",
+    "srcport": "40122",
+    "dstuser": "root"
+  },
+  "full_log": "Nov 11 03:05:44 lab-srv02 sshd[2211]: Failed password for root from 198.51.100.77 port 40122 ssh2"
+}
