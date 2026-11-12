@@ -11,8 +11,8 @@ Legend: [ ] todo · [x] done · **STOP** = wait for Naveed · ⬆ = commit + pus
 | [x] | T02-03 | Triage scorer (confusion, recall/precision, escalation, pages, invented MITRE, cite check, leaks) — tests first | FR-02-12 | tests green | T02-02 |
 | | ⬆ | **checkpoint 1** (`feat(02): evals package, Rate, predictions, triage scorer`) | | pushed | |
 | [x] | T02-04 | Scope scorer + cost/latency + targets PASS/FAIL — tests first | FR-02-13…15 | tests green | T02-03 |
-| [ ] | T02-05 | KSOR reference snapshots (read-only script over ../handbook file names) | FR-02-06 | files + test | T02-01 |
-| [ ] | T02-06 | Scope probes CSV (95 rows) + loader + count/label tests | FR-02-05 | 95/95 valid | T02-05 |
+| [x] | T02-05 | KSOR reference snapshots (read-only script over ../handbook file names) | FR-02-06 | files + test | T02-01 |
+| [x] | T02-06 | Scope probes CSV (95 rows) + loader + count/label tests | FR-02-05 | 95/95 valid | T02-05 |
 | | ⬆ | **checkpoint 2** | | pushed | |
 | [ ] | T02-07 | (if Q2 OK) read Wazuh ruleset v4.14.10 for the missing rule IDs; record file:line | FR-02-04 | source table in plan.md | STOP |
 | [ ] | T02-08 | Alerts batch 1: 22 playbook alerts (SYNTHETIC) + label rows with rationale/sources | FR-02-01…04 | loader + fact tests green | T02-05, 07 |
