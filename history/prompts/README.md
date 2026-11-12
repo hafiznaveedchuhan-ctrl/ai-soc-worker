@@ -14,6 +14,7 @@ Never put secrets, keys or unmasked personal data in a PHR.
 | [0005](PHR-0005-feature01-approved-implemented.md) | 2026-11-12 | implement → verify | 01 | Feature 01 docs approved; implemented T01-01…15 |
 | [0006](PHR-0006-verified-merge-error.md) | 2026-11-12 | verify → fix | 01 | Verified; draft-PR merge error fixed; pushed-after-merge incident + guard |
 | [0007](PHR-0007-env-and-feature02-docs.md) | 2026-11-12 | spec | 02 | .env created/filled safely; PR #2 merged; feature 02 docs |
+| [0008](PHR-0008-feature02-implementation.md) | 2026-11-12 | implement | 02 | 02 approved; scorer, probes, 30 alerts; PR #3 merged mid-feature → part2 branch |
 
 ## Template
 ```markdown
