@@ -1,0 +1,38 @@
+DECISION NOTE — R3d: after pilot 4 (feature 11). Waiting for Naveed's choice / "approved".
+2026-11-12, session 2. Main bc66dd8. Ledger total $0.0594 of $9 (pilot 4: $0.0139).
+
+======================================================================
+1. PILOT 4 — what the events show
+======================================================================
+  EV-A034  ok. The escalation is now CORRECT (condition 1): the R3c policy hint worked. Verdict needs_info (label TP).
+  EV-A003  BLOCKED by the LLM reviewer (gpt-5-nano). It said "the 60204 reference is wrong", but the analyst
+           context (context.csv) DOES mention rule 60204. The reviewer never sees the analyst context, so
+           this is a false positive.
+  EV-P056  BLOCKED. The handbook agent never called search_handbook and wrote "Proceeding to retrieve…".
+  EV-P021  error. On the retry the research agent switched the scope to DECLINE (model chaos).
+  P001/P086 correct declines.
+
+The pipeline itself is now sound: costs are exact, every failure has a reason, there are no crashes, and the
+masking holds. The remaining failures are mostly gpt-5-nano BEHAVIOUR. Two of them can still be
+constrained by code.
+
+======================================================================
+2. OPTIONS
+======================================================================
+A (recommended) — two last code constraints, then ONE full baseline run. No more pilots.
+   T11-22  The LLM reviewer for a TriageNote also gets the masked analyst context and the alert summary
+           it was built from, so it stops flagging facts that ARE in the input.
+   T11-23  The handbook and research agents MUST call their search tool first:
+           ModelSettings(tool_choice="search_handbook" / "web_search"). The SDK resets tool_choice after
+           the tool call (Agent.reset_tool_choice=True, agents/agent.py:418), so this cannot loop. If they
+           must search, they cannot "answer" with "Proceeding to retrieve…".
+   Then R5 = the full run at gpt-5-nano: 135 items, about $0.30–0.60 (cap $1.50), about 1.5–3 h.
+   This gives a real BASELINE on 135 items. Six-item pilots are too noisy to decide model upgrades.
+   After that, ADR-0011: upgrade ONE agent (constitution VI.2) where the data says so. The likely
+   candidates are the note_reviewer or the triage agent → gpt-5-mini (5x price, still cents).
+B — upgrade one agent now (e.g. the reviewer → gpt-5-mini) via an ADR, then pilot again. Faster to "green",
+   but chosen from 6 items, not from data.
+C — stop here. Do the label review first (0/40 + 0/95 verified), then decide.
+
+NOTE: the full-run scores against UNREVIEWED labels are drafts. The failures of type blocked / error /
+no-search do not depend on the labels, so a baseline is still useful before the review.
