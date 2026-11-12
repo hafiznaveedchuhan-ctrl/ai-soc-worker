@@ -1,0 +1,125 @@
+PLAN — feature 11 "live-eval" (R4: wire `soc_evals paid` to the live pipeline)
+Status: DRAFT — waiting for Naveed's "approved". No code until then.
+Branch: feat/11-live-eval (created from main 5e41533). Session 2, 2026-11-12.
+
+======================================================================
+1. INTENT (Naveed's words, session-2 prompt)
+======================================================================
+"R4 shuru karo: soc_evals paid ko live pipeline (agent_service.flows) se jodo, naye branch
+feat/11-live-eval par, pehle ScriptedModel ke saath offline test karo, aur real run se pehle
+cost estimate do. Koi bhi paid ya live call meri 'haan' ke baghair nahi."
+
+Goal: `make eval` runs the 40 alerts + 95 probes through the REAL flows (run_triage / run_ask),
+writes prediction JSONL files, scores them with the existing scorer and writes
+`evals/reports/<date>-paid-report.md`. The paid run itself (R5) is NOT part of this feature.
+
+======================================================================
+2. SPEC (what it must do)
+======================================================================
+FR-11-01  `python -m soc_evals paid` runs only with BOTH `--yes-paid` AND env CONFIRM=haan.
+          Otherwise it prints "refused ..." and makes zero calls (exit 1).
+FR-11-02  Alerts: each alert goes through agent_service.flows.run_triage with its
+          analyst context from context.csv. Ticket approvals are always REJECTED (no tickets,
+          even mock ones). One fresh session per alert.
+FR-11-03  Probes: each probe goes through run_ask with a fresh session per probe (no memory
+          shared between probes).
+FR-11-04  Mapping FlowResult → prediction (existing AlertPrediction / ProbePrediction models):
+            ok        → note/answer, output_text = r.text (MASKED text, so the leak check is real)
+            declined  → scope_label = DECLINE, output_text = the decline text
+            blocked / max_turns / budget / error → error = "<status>: <text>",
+                         probes keep scope_label from the fallback answer
+          usage = r.usage (tokens + cost per call), latency_ms measured around each flow call.
+          An unexpected exception on one item → error on that item; the run continues.
+FR-11-05  Money guards: (a) per-item budget = existing run budget $0.05; (b) a RUN-WIDE cap
+          `--max-usd` (default 1.50): when the running total reaches it the run STOPS, writes
+          what it has, and the report says "stopped at cap"; (c) the existing $9 ledger is
+          checked before every item.
+FR-11-06  Pilot options: `--only alerts|probes`, `--ids EV-A003,EV-P001,...`, `--limit N`.
+          A partial run is scored only on the items it ran (report says "partial: k/n items").
+FR-11-07  `python -m soc_evals estimate` (FREE, offline): prints the expected and pessimistic
+          cost of a full run from the dataset sizes + prompt sizes + the gpt-5-nano price.
+FR-11-08  Pre-flight (free): the handbook MCP must answer `list_tools` (no search, no embedding),
+          else stop with "start the handbook: cd ../handbook && npm run serve".
+FR-11-09  Outputs: `evals/recordings/paid/<date>-<sha>-{alerts,probes}.jsonl` (masked only) +
+          `evals/reports/<date>-paid-report.md` with total cost, tokens, p50/p95 latency.
+FR-11-10  Privacy: trace export OFF by default (same as the demos); `--export-traces` opts in
+          (traces are masked + trace_include_sensitive_data=False anyway).
+FR-11-11  Dependencies in the live run:
+            KSOR       = LIVE handbook (the fake KSOR does not hold all expected pages)
+            Wazuh      = fixtures (evals/data/alerts — the same 40 files)
+            AbuseIPDB  = real only if ABUSEIPDB_API_KEY is set, else "not configured"
+                         (NOT the test mock: its fixed score 88 would bias verdicts)
+            Web search = Tavily only if WEB_SEARCH_API_KEY is set, else "web search unavailable"
+
+Out of scope: running the paid eval (R5), concurrency (items run one by one), model upgrades.
+
+======================================================================
+3. DESIGN
+======================================================================
+New files (backend/evals/src/soc_evals/):
+  pipeline.py   Pipeline protocol (run_alert(id, alert, context) / run_probe(probe)) and
+                run_all(data, pipeline, selection, max_usd) → predictions + "stopped" flag.
+                Pure code, no agent imports → unit-testable with a fake pipeline.
+  live.py       AgentPipeline: adapts agent_service.flows to the protocol (the mapping in
+                FR-11-04) + build_live(settings) (live deps per FR-11-11) + preflight().
+  estimate.py   the free cost estimate (FR-11-07).
+Changed:
+  cli.py        cmd_paid (guards, options, writes JSONL + report), new `estimate` sub-command.
+  report.py     RunInfo gets optional `note` (partial / stopped at cap) — small change.
+  evals/pyproject.toml   + dependency "agent-service" (workspace). No cycle: agent-service
+                does not import soc_evals.
+  Makefile      `eval` passes options; new `eval-estimate` (free); `eval-pilot`
+                (2 alerts + 4 probes, PAID, CONFIRM=haan).
+
+Docs to re-check before coding (CLAUDE.md rule), noted in plan.md:
+  openai-agents 0.24.0 — agents.testing.ScriptedModel, Runner.run, set_trace_processors;
+  mcp 2.3.0 — client list_tools for the pre-flight. (Context7 / official docs.)
+
+======================================================================
+4. TASKS (⬆ = commit + push checkpoint, merged-branch guard before every push)
+======================================================================
+T11-01  SDD files: INTENT.md, spec.md, plan.md, tasks.md in specs/11-live-eval/ (from this txt),
+        ADR-0010 "eval run-wide cap + live deps choice" — docs only.
+T11-02  Docs check (Context7) for the APIs above; note it in plan.md.
+T11-03  pipeline.py + tests with a FAKE pipeline: selection, error isolation, run-wide cap stops
+        and keeps partial results.                                                      ⬆
+T11-04  live.py AgentPipeline + OFFLINE tests with ScriptedModel (build_offline): 2 alerts +
+        4 probes (KSOR answer, research answer, scope decline, guardrail decline), status
+        mapping for blocked/budget/max_turns, approvals rejected, output_text is masked.
+T11-05  cli.py paid + estimate; refusal tests (no flag / no CONFIRM → zero model calls);
+        end-to-end offline test: scripted run → JSONL + paid-report.md in tmp_path.
+T11-06  preflight() test (fake MCP server up / down).                                   ⬆
+T11-07  Makefile targets, README + LEARNING §14 short note, CAREER-MAP row 11.
+T11-08  `make check` green (target ≥ 307 + new tests, coverage ≥ 90%); `make eval-estimate`
+        output pasted into VERIFY.md; `make eval-dry` still passes.                      ⬆
+STOP → Naveed verifies → PR (ready for review). R5 (paid run) needs a separate "haan".
+
+======================================================================
+5. COST ESTIMATE (for the later paid run R5 — nothing is spent in this feature)
+======================================================================
+Model gpt-5-nano: $0.05 / 1M input, $0.40 / 1M output (ADR-0003). Reasoning tokens bill as output.
+Measured sizes: TriageNote schema 3.7 KB, AskAnswer 1.1 KB, scope prompt 0.7 KB,
+alerts avg 1.0 KB (max 1.3 KB).
+
+  Item                        calls/item          tokens in / out       $ per item   x n    total
+  Alert (/triage)             ~5 triage turns +   ~29k / ~11k           ~$0.0059     40   ~$0.24
+                              handbook + reviewer
+  Probe allowed (KSOR / web)  scope+route+2+rev.  ~9.5k / ~3.7k         ~$0.0020     55   ~$0.11
+  Probe declined              scope only (or 0)   ~1k / ~0.5k           ~$0.0003     40   ~$0.01
+  Handbook embeddings (handbook side, ~180 searches x ~20 tokens)                           <$0.001
+  ---------------------------------------------------------------------------------------------
+  EXPECTED full run                                                                       ~$0.36
+  PESSIMISTIC (3x reasoning tokens)                                                       ~$1.00
+  Hard stops: run-wide cap $1.50 · per item $0.05 · ledger $9 (spent so far: $0.00)
+
+Recommendation for R5: first a PILOT (2 alerts + 4 probes, ~$0.02) to measure real tokens,
+then I re-estimate from the pilot numbers, then the full run. Each step needs its own "haan".
+The label review (0/40 + 0/95 verified) should come before R5, else the scores measure
+unreviewed labels.
+
+======================================================================
+6. QUESTIONS FOR NAVEED (defaults in brackets — say "approved" to accept them)
+======================================================================
+Q1  Run-wide cap default --max-usd [1.50]?
+Q2  Commit the masked paid prediction JSONL files to git? [yes — masked only, useful history]
+Q3  AbuseIPDB in the eval: real if the key exists, else "not configured" [yes]
