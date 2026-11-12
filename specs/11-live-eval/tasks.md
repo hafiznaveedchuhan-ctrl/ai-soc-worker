@@ -28,3 +28,11 @@ Legend: [ ] todo · [~] in progress · [x] done · ⬆ = commit + push (run the 
 | [x] T11-12 | An `invalid_final_output` error handler captures the rule messages (never the values). `run_triage` then makes ONE corrective retry. | F2 | tests pass |
 | [x] T11-13 | Prompts: no handoff sentence as the answer; a fixed text when web search is unavailable. The deterministic review blocks handoff sentences. | F3 | tests pass |
 | [x] T11-14 | Real pilot numbers go into VERIFY §7 and ADR-0010. | — | docs done |
+
+**R3b plan (`R3b-diagnosis-plan.txt`, PR #18), approved by Naveed on 2026-11-12.**
+
+| ID | Task | Satisfies | Done when |
+|---|---|---|---|
+| [x] T11-15 | Store `events` in the predictions, scrubbed by `safe_events`. A failed review says which check failed: `review FAILED by rules` or `by llm reviewer`, plus the problems. `run_ask` logs the review problems. The report gets a "Diagnostics" section. The dry recordings were regenerated; the only change is `events: []`, which a script proved. | diagnosis | tests pass |
+| [x] T11-16 | Pilot-2 P056 text against `HANDOFF_RE`: NOT matched. The pilot-3 block of P056 therefore has another cause. The next diagnostic run will show which. P021's "Transferring…" text matches, as intended. | regression check | done (offline) |
+| [x] T11-17 | Pilot-3 recordings and report committed (PR #18). | — | done |

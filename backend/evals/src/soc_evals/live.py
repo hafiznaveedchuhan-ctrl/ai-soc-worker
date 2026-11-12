@@ -16,6 +16,8 @@ from agent_service.deps import Deps
 from agent_service.flows import FlowConfig, FlowResult, run_ask, run_triage
 from agents.items import ToolApprovalItem
 from mcp import Client
+from soc_shared.masking import find_unmasked_pii
+from soc_shared.masking.patterns import TOKEN_RE
 from soc_shared.models import WazuhAlert
 
 from soc_evals.datasets import Probe
@@ -33,6 +35,14 @@ async def reject_all(item: ToolApprovalItem) -> bool:
     return False
 
 
+def safe_events(events: list[str]) -> list[str]:
+    """Events are masked by design; still, never store one that holds a raw IP or email."""
+    return [
+        "[event withheld: unmasked data]" if find_unmasked_pii(TOKEN_RE.sub(" ", e)) else e[:400]
+        for e in events
+    ][:30]
+
+
 def _error(r: FlowResult) -> str | None:
     return None if r.status in ("ok", "declined") else f"{r.status}: {r.text}"[:300]
 
@@ -45,6 +55,7 @@ def alert_prediction(alert_id: str, r: FlowResult, latency_ms: float) -> AlertPr
         latency_ms=latency_ms,
         usage=r.usage,
         output_text=r.text,  # masked: the gateway unmasks for the analyst, the eval does not
+        events=safe_events(r.events),
     )
 
 
@@ -58,6 +69,7 @@ def probe_prediction(probe_id: str, r: FlowResult, latency_ms: float) -> ProbePr
         latency_ms=latency_ms,
         usage=r.usage,
         output_text=r.text,
+        events=safe_events(r.events),
     )
 
 

@@ -15,6 +15,7 @@ from soc_evals.pipeline import RunOutcome, Selection, run_all, subset
 from soc_evals.predictions import AlertPrediction, ProbePrediction, write_jsonl
 from soc_evals.rate import Rate
 from soc_evals.report import RunInfo, render
+from soc_evals.scoring.common import Failure
 from soc_evals.scoring.cost import cost_latency
 from soc_evals.scoring.scope import score_scope
 from soc_evals.scoring.triage import score_triage
@@ -48,7 +49,21 @@ def score_and_report(
     s = score_scope(data.probes, {p.probe_id: p for p in probes})
     targets = evaluate(t, s)
     md = render(info, data, t, s, targets, cost_latency(alerts), cost_latency(probes))
-    return md, all(r.passed for r in targets)
+    return md + diagnostics(t.failures + s.failures, [*alerts, *probes]), all(
+        r.passed for r in targets
+    )
+
+
+def diagnostics(failures: list[Failure], preds: list[AlertPrediction | ProbePrediction]) -> str:
+    """The flow events of every failed item (masked breadcrumbs), so a failure has a reason."""
+    failed = {f.item_id for f in failures}
+    by_id = {getattr(p, "alert_id", None) or getattr(p, "probe_id", ""): p for p in preds}
+    rows = [
+        f"- **{i}**: " + " → ".join(e.replace("|", "/") for e in by_id[i].events)
+        for i in sorted(failed)
+        if i in by_id and by_id[i].events
+    ]
+    return "\n## Diagnostics (flow events of failed items)\n" + ("\n".join(rows) or "None.") + "\n"
 
 
 def cmd_dry(_: argparse.Namespace) -> int:

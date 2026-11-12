@@ -19,6 +19,7 @@ from soc_evals import cli, live, recordings
 from soc_evals.datasets import EvalData, Probe, load
 from soc_evals.pipeline import RunOutcome, Selection, run_all
 from soc_evals.predictions import AlertPrediction, read_jsonl
+from soc_evals.report import RunInfo
 from soc_shared.models import (
     DECLINE_MESSAGE,
     AskAnswer,
@@ -338,3 +339,46 @@ def test_estimate_is_free_and_under_the_cap(capsys: pytest.CaptureFixture[str]) 
     total = next(ln for ln in out.splitlines() if ln.startswith("TOTAL")).split()
     expected, pessimistic = float(total[1]), float(total[2])
     assert 0 < expected < pessimistic < 1.5  # the default run cap covers the pessimistic case
+
+
+# ------------------------------------------------------------------ diagnosis (T11-15, pilot 3)
+async def test_blocked_probe_keeps_the_reason_in_its_events(tmp_path: Path) -> None:
+    models = scripted(
+        {
+            "scope": [msg(ScopeVerdict(label="ALLOW_KSOR", reason="event meaning"))],
+            "triage": [call("transfer_to_soc_handbook_agent", {}, "h1")],
+            "handbook": [
+                call("search_handbook", {"query": "event 4625 meaning"}, "s1"),
+                msg(
+                    AskAnswer(
+                        answer="Event 4625 is a failed logon.",
+                        scope="ALLOW_KSOR",
+                        citations=["knowledge/windows-events/event-4999"],  # not returned → block
+                        confidence=0.8,
+                    )
+                ),
+            ],
+        }
+    )
+    app, cfg, deps = build_offline(models, tmp_path)
+    data = only([], True)
+    data.probes = {"EV-P901": data.probes["EV-P901"]}
+    out = await run_all(data, live.AgentPipeline(app, cfg, deps), Selection(), 1.5)
+    [p] = out.probes
+    assert p.error and p.error.startswith("blocked")
+    assert any("review FAILED by rules" in e and "KSOR did not return" in e for e in p.events)
+    md, _ = cli.score_and_report(
+        subset_of(data, out), out.alerts, out.probes, RunInfo("paid", "d", "s", "t")
+    )
+    assert "## Diagnostics" in md and "EV-P901" in md.split("## Diagnostics")[1]
+
+
+def subset_of(data: EvalData, out: RunOutcome) -> EvalData:
+    from soc_evals.pipeline import subset
+
+    return subset(data, out)
+
+
+def test_safe_events_withholds_raw_data() -> None:
+    ev = live.safe_events(["review ok", "problem with 203.0.113.45", "token <IP-1> is fine"])
+    assert ev == ["review ok", "[event withheld: unmasked data]", "token <IP-1> is fine"]

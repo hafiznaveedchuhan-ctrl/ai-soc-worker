@@ -200,11 +200,16 @@ def make_output_guardrail(llm_review: Reviewer | None) -> Any:
         if isinstance(output, AskAnswer) and output.scope == "DECLINE":
             return GuardrailFunctionOutput(output_info={"problems": []}, tripwire_triggered=False)
         problems = review_problems(output, ctx.context)
+        source = "rules"
         if not problems and llm_review is not None:
+            source = "llm reviewer"
             text = output.to_text() if isinstance(output, TriageNote) else output.answer
             verdict = await llm_review(text, ctx.context)
             problems = [] if verdict.ok else verdict.problems or ["reviewer rejected the draft"]
-        ctx.context.events.append(f"review {'ok' if not problems else 'FAILED'}")
+        # which check failed is kept for diagnosis (pilot 3, T11-15); texts are masked-only
+        ctx.context.events.append(
+            "review ok" if not problems else f"review FAILED by {source}: {problems}"[:400]
+        )
         return GuardrailFunctionOutput(
             output_info={"problems": problems}, tripwire_triggered=bool(problems)
         )

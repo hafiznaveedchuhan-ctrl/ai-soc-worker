@@ -13,6 +13,8 @@ class _Prediction(BaseModel):
     latency_ms: float = Field(default=0.0, ge=0)
     usage: list[LlmUsage] = Field(default_factory=list)
     output_text: str = ""  # the exact text shown to the analyst (checked for leaks)
+    # Flow breadcrumbs (masked): guardrail problems, rule messages, approvals — for diagnosis.
+    events: list[str] = Field(default_factory=list)
 
 
 class AlertPrediction(_Prediction):

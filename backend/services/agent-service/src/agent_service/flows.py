@@ -171,7 +171,8 @@ async def run_ask(
         except InputGuardrailTripwireTriggered:
             ans = AskAnswer(answer=DECLINE_MESSAGE, scope="DECLINE", confidence=1.0)
             return _done(ctx, t.trace_id, "declined", answer=ans, text=DECLINE_MESSAGE)
-        except OutputGuardrailTripwireTriggered:
+        except OutputGuardrailTripwireTriggered as exc:
+            ctx.events.append(f"review problems: {exc.guardrail_result.output.output_info}"[:400])
             ans = _fallback_answer(ctx, SAFE_FALLBACK)
             return _done(ctx, t.trace_id, "blocked", answer=ans, text=SAFE_FALLBACK)
         except MaxTurnsExceeded:
