@@ -65,6 +65,9 @@ write a PHR in `history/prompts/` for every significant prompt of the session (�
   3–4 completed tasks (the ⬆ checkpoints in tasks.md) and at the end of the session. No need to ask each time.
 - Still forbidden without his explicit word: pushing to `main`, force-push, rewriting pushed history, merging PRs (Naveed merges).
 - **Never push to a branch after its PR is merged** (this has lost work before; recover with cherry-pick onto a new branch).
+  **Guard before EVERY push:** `gh pr list --head <branch> --state merged` must be empty. If a PR from this branch
+  is already merged → do not push; create a new branch from the updated `main` and cherry-pick (incident 2026-11-12, PHR-0006).
+- Open PRs as **ready for review** (not draft) when the feature's VERIFY.md is filled — a draft PR cannot be merged.
 - GitHub: `origin` = https://github.com/hafiznaveedchuhan-ctrl/ai-soc-worker (public repo → free Actions + GHCR).
 - Free tiers only (except the capped LLM). Any new paid service → STOP and ask.
 

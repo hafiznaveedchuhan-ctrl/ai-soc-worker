@@ -5,7 +5,7 @@ Protocol: `CLAUDE.md` §1. Plan of record: `specs/00-final-plan.txt` (v2). Const
 Only the "READ ME FIRST" box below is rewritten in place, every session.
 
 > ## READ ME FIRST (rewritten every session — last: session 1, 2026-11-12T06:20Z)
-> **Where we are:** Feature 01 (foundation) is **implemented and VERIFY.md is filled** → **waiting for Naveed to verify**.
+> **Where we are:** Feature 01 (foundation) **VERIFIED by Naveed** (2026-11-12). PR #1 merged earlier with only 2 commits; **PR #2 holds the rest** and is now ready to merge.
 > Branch `feat/01-foundation` is pushed, CI is green, and **draft PR #2 to main** is open: https://github.com/hafiznaveedchuhan-ctrl/ai-soc-worker/pull/2.
 > **Next step:** Naveed runs `specs/01-foundation/VERIFY.md` → says "verified" → marks the PR ready and merges it himself →
 > Claude starts **feature 02 (evals-first)**: a NEW branch `feat/02-evals-first` from the updated main → INTENT (draft in plan v2 §12) → spec → plan → tasks → STOP.
@@ -17,7 +17,7 @@ Only the "READ ME FIRST" box below is rewritten in place, every session.
 >
 > | # | Feature | State |
 > |---|---|---|
-> | 01 | foundation | implementing → VERIFY filled, awaiting Naveed's verification |
+> | 01 | foundation | **verified** — PR #2 ready to merge (Naveed merges) |
 > | 02 | evals-first | not started (next) |
 > | 03–10 | — | not started |
 
@@ -59,7 +59,7 @@ Only the "READ ME FIRST" box below is rewritten in place, every session.
 ## Current state (feature table 01–10: not started / intent / spec / plan / tasks / implementing / verified)
 | # | Feature | State | Branch | Notes |
 |---|---|---|---|---|
-| 01 | foundation | implementing — done, VERIFY filled, **awaiting Naveed's verification** | feat/01-foundation (draft PR) | 153 tests, coverage 98.99%, CI green |
+| 01 | foundation | **verified** (human:naveed, 2026-11-12) | feat/01-foundation → PR #1 merged (2 commits) + PR #2 (5 commits, ready) | 153 tests, coverage 98.99%, CI green |
 | 02 | evals-first | not started | — | INTENT draft is in plan v2 §12; needs OK before any OTRF download |
 | 03 | mcp-services | not started | — | |
 | 04 | handbook-client | not started | — | live demo needs "haan" (embedding cost) |
@@ -108,10 +108,12 @@ Only the "READ ME FIRST" box below is rewritten in place, every session.
 - **Token order:** the user token was created before the domain token. Fix: the domain token is now created first.
 - **Masking was too slow:** the learned-names regex was recompiled for every text segment, so a 50 KB alert took 98 ms. Fix: compile it once per step; now 19–29 ms.
 - **Ruff 0.17 formats Python code blocks inside Markdown**, so the README failed `format --check`. Fix: `make fmt`.
+- **Pushed after a merged PR (my mistake):** Naveed merged PR #1 at 05:56Z, when it held only 284b865 and df7976b. I did not check and pushed 5 more commits to `feat/01-foundation`. Nothing was lost, because the 5 commits are in PR #2 (CLEAN, mergeable). Fix: CLAUDE.md now has a guard: before every push, `gh pr list --head <branch> --state merged` must be empty (PHR-0006).
+- **Merge button error on PR #2:** it was opened as a draft, and GitHub does not merge drafts. Fix: `gh pr ready 2`. Future PRs are opened ready for review.
 - **Hypothesis found an edge case:** `0.0.0.0` and `::ffff:0:0` share one token, so the round-trip test failed. This is intended (FR-01-31). Fix: the round-trip property excludes IPv4-mapped forms, and a new property test proves they share the token.
 
 ## Pending / blocked (reason + who acts: Naveed or Claude)
-- **Naveed:** run `specs/01-foundation/VERIFY.md` (sections 0–3), write the verdict in §5 or tell Claude, then mark the draft PR "Ready for review" and merge it.
+- **Naveed:** merge PR #2 (https://github.com/hafiznaveedchuhan-ctrl/ai-soc-worker/pull/2). After that merge, nobody pushes to `feat/01-foundation` again.
 - **Claude (after merge):** start feature 02 on a NEW branch `feat/02-evals-first` from the updated `main`.
 - **Naveed (for 02):** decide whether OTRF Security-Datasets may be downloaded (free public GitHub). Claude checks the licence first.
 

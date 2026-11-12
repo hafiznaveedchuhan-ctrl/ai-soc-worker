@@ -1,5 +1,5 @@
 # VERIFY — 01 foundation
-Status: **filled** by Claude 2026-11-12 (real output in §4) — **awaiting Naveed's verification** · Naveed's 10%
+Status: **verified** (human:naveed, 2026-11-12) · Naveed's 10%
 
 ## 0. Setup
 ```bash
@@ -111,4 +111,4 @@ token, so `unmask` returns the first spelling. This is the intended rule (FR-01-
 excludes IPv4-mapped forms, and a new property test proves they share the IPv4 token.
 
 ## 5. Naveed's verdict
-_(verified / changes needed — notes)_
+**verified** — human:naveed, 2026-11-12 ("verify"). Note: the merge button failed because PR #2 was a draft; fixed by marking it ready (PHR-0006).
