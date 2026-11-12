@@ -22,6 +22,9 @@ from enrichment_mcp.cache import Clock, DailyBudget, TtlCache
 from enrichment_mcp.settings import EnrichmentSettings
 
 log = logging.getLogger("enrichment_mcp")
+# httpx logs every request URL at INFO — the URL holds ?ipAddress=<raw IP>. Keep it quiet.
+for _noisy in ("httpx", "httpcore"):
+    logging.getLogger(_noisy).setLevel(logging.WARNING)
 READ_ONLY = ToolAnnotations(
     read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=True
 )

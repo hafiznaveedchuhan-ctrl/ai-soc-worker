@@ -40,6 +40,8 @@ jobs:
         run: uv run pytest --cov --cov-report=term --cov-fail-under=90
       - name: Masking demo (must print LEAK CHECK OK)
         run: uv run python scripts/demo_masking.py
+      - name: MCP services demo (in memory, AbuseIPDB mocked)
+        run: make demo-mcp
       - name: Eval dry run (free, offline — datasets + scorer must pass)
         run: make eval-dry
 

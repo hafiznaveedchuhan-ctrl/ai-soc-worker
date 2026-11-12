@@ -6,7 +6,7 @@ then open the files it names and run the command it shows.
 Contents: [1 Big picture](#1-big-picture) · [2 Feature 01 — foundation](#2-feature-01--foundation) ·
 [3 Masking](#3-how-masking-works) · [4 Data contracts](#4-the-data-contracts-models) ·
 [5 Tests](#5-how-the-tests-work) · [6 CI pipeline](#6-ci-pipeline-githubworkflowsciyml) ·
-[7 Later features](#7-later-features-placeholders) · [8 Evals](#8-feature-02--evals-first)
+[7 Later features](#7-later-features-placeholders) · [8 Evals](#8-feature-02--evals-first) · [9 MCP services](#9-feature-03--mcp-services)
 
 ---
 
@@ -201,3 +201,33 @@ model change or guardrail change is judged by the same tests, not by a feeling.
 ### Commands
 `make eval-dry` (free, offline, in CI) · `make eval-stats` · `make eval-review` · `make eval-recordings` (rebuild data + recordings) ·
 `make eval` (PAID — refuses until features 05/06 and Naveed's "haan").
+
+---
+
+## 9. Feature 03 — MCP services
+
+**MCP (Model Context Protocol)** is a standard way for an AI app to call *tools* on a *server*. A server lists its tools
+(name, input schema from type hints, annotations such as `read_only_hint`) and answers `call_tool`. We use the official
+MCP Python SDK **v2.3.0** (`MCPServer`, formerly `FastMCP`), which resolves together with the OpenAI Agents SDK.
+
+| File | What it does |
+|---|---|
+| `services/wazuh-mcp/src/wazuh_mcp/server.py` | `build_server(source)` registers `get_alert` and `get_new_alerts`; input checks raise `ToolError` (the model sees a clear error, the server never crashes) |
+| `.../wazuh_mcp/sources.py` | `FixtureSource` reads the 40 eval alerts once; `LiveSource` is a placeholder for the read-only indexer user |
+| `.../wazuh_mcp/__main__.py` | `python -m wazuh_mcp` → streamable HTTP on :8101 |
+| `services/enrichment-mcp/src/enrichment_mcp/server.py` | `ip_reputation`: classify the IP → `not_queried` unless public → cache → key/budget checks → AbuseIPDB → validated result |
+| `.../enrichment_mcp/abuseipdb.py` | the HTTP client + a Pydantic model of the response; every HTTP problem becomes an `AbuseIpdbError(reason)` |
+| `.../enrichment_mcp/cache.py` | `TtlCache[T]` and `DailyBudget` with an injectable clock (so tests can move time) |
+| `.../enrichment_mcp/bands.py` | the handbook score bands |
+| `scripts/demo_mcp.py` | `make demo-mcp` — both servers in memory, AbuseIPDB mocked |
+
+**How the tests stay free and offline:** `Client(server)` connects to the server object *in memory* (no port, no process),
+and `httpx.MockTransport` answers the AbuseIPDB calls. pytest-socket blocks internet sockets; `--allow-unix-socket` is needed only
+for asyncio's internal self-pipe.
+
+**Why "errors as results":** the agent must be able to say "reputation unavailable (rate limited)" in a note, not crash the triage.
+
+**A privacy bug found by the demo:** httpx logs every request URL at INFO, and the AbuseIPDB URL contains `?ipAddress=<IP>`.
+The server now sets the httpx/httpcore loggers to WARNING, and a test captures ALL loggers to prove no IP is written.
+
+**Read-only by design:** annotations say `read_only_hint=True`; more importantly, no write tool exists, and a test fails if one is added.
