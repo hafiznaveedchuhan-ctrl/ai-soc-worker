@@ -1,0 +1,18 @@
+# Deploy (Phase 8 placeholder): Azure Container Registry + Azure Container Apps. DISABLED on purpose.
+# Phase 8 needs: an Azure subscription decision (paid → Naveed), OIDC federated credentials, Postgres sessions (ADR-0008),
+# AUTH_MODE=auth0, and a secrets store. Nothing here runs until `if: false` is removed in a reviewed PR.
+name: deploy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  azure:
+    if: false
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Phase 8 — az login (OIDC) → az acr import from ghcr.io → az containerapp update --image ..."

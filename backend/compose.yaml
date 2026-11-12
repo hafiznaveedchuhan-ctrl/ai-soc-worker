@@ -1,0 +1,73 @@
+# Local run of all four services (feature 09). From backend/:  make up   (needs Docker).
+# Values come from backend/.env by interpolation (${VAR}); each service gets ONLY the variables it needs.
+# The handbook MCP runs on the HOST (../handbook: npm run serve). Containers reach it via host.docker.internal;
+# the handbook must listen on an address the Docker host can reach (see docs/LEARNING.md §12).
+name: ai-soc
+
+x-common: &common
+  restart: unless-stopped
+  networks: [soc]
+  read_only: true
+  tmpfs: [/tmp]
+  security_opt: ["no-new-privileges:true"]
+
+services:
+  wazuh-mcp:
+    <<: *common
+    image: ai-soc/wazuh-mcp:${GIT_SHA:-dev}
+    build: {context: ., dockerfile: services/wazuh-mcp/Dockerfile}
+    environment:
+      WAZUH_MODE: fixture
+      MCP_ALLOWED_HOSTS: "wazuh-mcp:*,127.0.0.1:*,localhost:*"
+
+  enrichment-mcp:
+    <<: *common
+    image: ai-soc/enrichment-mcp:${GIT_SHA:-dev}
+    build: {context: ., dockerfile: services/enrichment-mcp/Dockerfile}
+    environment:
+      ABUSEIPDB_API_KEY: ${ABUSEIPDB_API_KEY:-}
+      MCP_ALLOWED_HOSTS: "enrichment-mcp:*,127.0.0.1:*,localhost:*"
+
+  agent-service:
+    <<: *common
+    image: ai-soc/agent-service:${GIT_SHA:-dev}
+    build: {context: ., dockerfile: services/agent-service/Dockerfile}
+    depends_on: [wazuh-mcp, enrichment-mcp]
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    volumes: [agent-data:/data]
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      AGENT_INTERNAL_TOKEN: ${AGENT_INTERNAL_TOKEN:?set AGENT_INTERNAL_TOKEN in backend/.env}
+      AGENT_MODEL_DEFAULT: ${AGENT_MODEL_DEFAULT:-gpt-5-nano}
+      AGENT_RUN_BUDGET_USD: ${AGENT_RUN_BUDGET_USD:-0.05}
+      AGENT_TOTAL_BUDGET_USD: ${AGENT_TOTAL_BUDGET_USD:-9}
+      HANDBOOK_MCP_URL: ${HANDBOOK_MCP_URL_DOCKER:-http://host.docker.internal:8080/mcp}
+      AGENT_WAZUH_MCP_URL: http://wazuh-mcp:8101/mcp
+      AGENT_ENRICHMENT_MCP_URL: http://enrichment-mcp:8102/mcp
+      WEB_SEARCH_API_KEY: ${WEB_SEARCH_API_KEY:-}
+      AGENT_ENV: local
+
+  api-gateway:
+    <<: *common
+    image: ai-soc/api-gateway:${GIT_SHA:-dev}
+    build: {context: ., dockerfile: services/api-gateway/Dockerfile}
+    depends_on: [agent-service]
+    ports: ["127.0.0.1:8000:8000"]   # the ONLY published port, bound to localhost
+    volumes: [gateway-data:/data]
+    environment:
+      SOC_DB_URL: ${SOC_DB_URL_DOCKER:-sqlite:////data/gateway.sqlite}
+      MASK_MAP_KEY: ${MASK_MAP_KEY:?set MASK_MAP_KEY in backend/.env}
+      AUTH_MODE: ${AUTH_MODE:-dev}
+      AUTH0_DOMAIN: ${AUTH0_DOMAIN:-}
+      AUTH0_AUDIENCE: ${AUTH0_AUDIENCE:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://ai-soc-handbook.vercel.app}
+      AGENT_INTERNAL_TOKEN: ${AGENT_INTERNAL_TOKEN}
+      GATEWAY_AGENT_URL: http://agent-service:8100
+      GATEWAY_ENV: local
+
+networks:
+  soc: {}
+
+volumes:
+  agent-data: {}
+  gateway-data: {}

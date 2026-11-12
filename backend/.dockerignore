@@ -1,0 +1,19 @@
+# Build context = backend/. Keep images small and secret-free.
+.env
+**/.env
+.venv
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+.hypothesis
+htmlcov
+.coverage
+*.sqlite
+.agent-ledger.json
+**/tests
+docs
+evals/recordings
+evals/reports
+evals/review
+suggestions
