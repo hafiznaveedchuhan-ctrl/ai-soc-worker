@@ -1,16 +1,16 @@
 # tasks — 02 evals-first
-Status: **draft — awaiting approval** · Plan: `./plan.md` · Branch: `feat/02-evals-first`
+Status: **approved** (human:naveed, 2026-11-12 "approced"; Q3+Q4 proposals accepted; Q1/Q2 need an explicit "haan") · Plan: `./plan.md` · Branch: `feat/02-evals-first`
 Legend: [ ] todo · [x] done · **STOP** = wait for Naveed · ⬆ = commit + push checkpoint (standing rule; guard: no merged PR for this branch)
 
 | ✓ | ID | Task | Satisfies | Done when | Depends |
 |---|---|---|---|---|---|
 | [x] | T02-00 | Write INTENT, spec, plan, tasks, VERIFY draft, ADR-0009 (Proposed) | Art. VII | files exist | — |
 | | **STOP** | **Naveed approves the docs and answers Q1 (OTRF "haan"?), Q2 (ruleset lookup OK?), Q3 (≥ 20 TP), Q4 (MITRE both)** | | "approved" | T02-00 |
-| [ ] | T02-01 | Workspace member `evals` (soc-evals package, deps on soc-shared); Makefile targets; CI picks it up | FR-02-20…24, NFR-02-02 | `uv sync`; `import soc_evals` | STOP |
-| [ ] | T02-02 | `Rate` + prediction schemas + JSONL io (tests first) | FR-02-10, 11 | tests green | T02-01 |
-| [ ] | T02-03 | Triage scorer (confusion, recall/precision, escalation, pages, invented MITRE, cite check, leaks) — tests first | FR-02-12 | tests green | T02-02 |
+| [x] | T02-01 | Workspace member `evals` (soc-evals package, deps on soc-shared); Makefile targets; CI picks it up | FR-02-20…24, NFR-02-02 | `uv sync`; `import soc_evals` | STOP |
+| [x] | T02-02 | `Rate` + prediction schemas + JSONL io (tests first) | FR-02-10, 11 | tests green | T02-01 |
+| [x] | T02-03 | Triage scorer (confusion, recall/precision, escalation, pages, invented MITRE, cite check, leaks) — tests first | FR-02-12 | tests green | T02-02 |
 | | ⬆ | **checkpoint 1** (`feat(02): evals package, Rate, predictions, triage scorer`) | | pushed | |
-| [ ] | T02-04 | Scope scorer + cost/latency + targets PASS/FAIL — tests first | FR-02-13…15 | tests green | T02-03 |
+| [x] | T02-04 | Scope scorer + cost/latency + targets PASS/FAIL — tests first | FR-02-13…15 | tests green | T02-03 |
 | [ ] | T02-05 | KSOR reference snapshots (read-only script over ../handbook file names) | FR-02-06 | files + test | T02-01 |
 | [ ] | T02-06 | Scope probes CSV (95 rows) + loader + count/label tests | FR-02-05 | 95/95 valid | T02-05 |
 | | ⬆ | **checkpoint 2** | | pushed | |

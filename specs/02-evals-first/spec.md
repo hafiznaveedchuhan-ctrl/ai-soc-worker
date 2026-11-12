@@ -1,5 +1,5 @@
 # spec — 02 evals-first
-Status: **draft — awaiting approval** · Intent: `./INTENT.md` · Plan of record: `../00-final-plan.txt` §12 · ADR-0002, ADR-0009
+Status: **approved** (human:naveed, 2026-11-12) · Intent: `./INTENT.md` · Plan of record: `../00-final-plan.txt` §12 · ADR-0002, ADR-0009
 
 ## 1. Summary
 A new workspace package `soc-evals` (`backend/evals/`) with: the datasets (alerts, labels, scope probes, a KSOR reference list),

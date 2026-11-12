@@ -4,8 +4,8 @@
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 UV := uv
-SRC := packages/soc-shared/src scripts
-TESTS := packages/soc-shared/tests tests
+SRC := packages/soc-shared/src evals/src scripts
+TESTS := packages/soc-shared/tests evals/tests tests
 
 .PHONY: help dev test cov lint fmt typecheck check eval-dry demo-masking clean \
         eval demo-handbook demo-ask demo-triage docker-build up down

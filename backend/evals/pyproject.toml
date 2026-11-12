@@ -1,0 +1,14 @@
+[project]
+name = "soc-evals"
+version = "0.1.0"
+description = "Eval datasets, scorer and reports for the soc-worker agents (feature 02)"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = ["soc-shared"]
+
+[tool.uv.sources]
+soc-shared = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.12.6,<0.13.0"]
+build-backend = "uv_build"

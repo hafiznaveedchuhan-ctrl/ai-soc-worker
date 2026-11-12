@@ -1,5 +1,5 @@
 # plan — 02 evals-first
-Status: **draft — awaiting approval** · Spec: `./spec.md`
+Status: **approved** (human:naveed, 2026-11-12) · Spec: `./spec.md`
 
 ## 1. Approach
 Build the scorer first (pure functions, tests on hand-made predictions), then the datasets in small batches with the

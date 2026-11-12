@@ -1,5 +1,5 @@
 # INTENT — 02 evals-first
-Status: **draft — awaiting approval by human:naveed** · Plan of record: `../00-final-plan.txt` §12 (v2) · ADRs: 0002, 0009 (draft)
+Status: **approved** (human:naveed, 2026-11-12; Q3 ≥ 20 TP and Q4 accept both MITRE IDs = proposals accepted; Q1 OTRF download and Q2 ruleset read still need an explicit "haan") · Plan of record: `../00-final-plan.txt` §12 (v2) · ADRs: 0002, 0009 (draft)
 
 ## Goal
 Define "good" BEFORE any agent exists: a labelled set of Wazuh-shaped alerts and scope probes, a scorer that turns

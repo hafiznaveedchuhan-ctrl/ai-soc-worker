@@ -35,7 +35,7 @@ jobs:
       - name: Format check (ruff)
         run: uv run ruff format --check .
       - name: Types (mypy --strict)
-        run: uv run mypy packages/soc-shared/src scripts packages/soc-shared/tests tests
+        run: make typecheck   # same file list as on your laptop (Makefile SRC/TESTS)
       - name: Tests + coverage (offline)
         run: uv run pytest --cov --cov-report=term --cov-fail-under=90
       - name: Masking demo (must print LEAK CHECK OK)
