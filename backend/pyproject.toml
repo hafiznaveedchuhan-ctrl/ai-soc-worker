@@ -4,15 +4,19 @@
 [tool.uv.workspace]
 # services/* is added member by member as services are created (features 03, 07, 08):
 # uv requires every matched directory to contain a pyproject.toml.
-members = ["packages/*", "evals"]
+members = ["packages/*", "evals", "services/*"]
 
 [tool.uv.sources]
 soc-shared = { workspace = true }
 soc-evals = { workspace = true }
+wazuh-mcp = { workspace = true }
+enrichment-mcp = { workspace = true }
 
 [dependency-groups]
 dev = [
+    "enrichment-mcp",
     "soc-evals",
+    "wazuh-mcp",
     "hypothesis>=6.170.15",
     "mypy>=2.4.1",
     "pytest>=9.2.0",
@@ -41,20 +45,22 @@ allowed-confusables = ["–", "—"]
 python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
-mypy_path = "packages/soc-shared/src:evals/src"
+mypy_path = "packages/soc-shared/src:evals/src:services/wazuh-mcp/src:services/enrichment-mcp/src"
 explicit_package_bases = true
 
 # ---------------------------------------------------------------- pytest
 [tool.pytest.ini_options]
-testpaths = ["packages", "evals/tests", "tests"]
-addopts = "-q --disable-socket --import-mode=importlib"
+testpaths = ["packages", "evals/tests", "services", "tests"]
+addopts = "-q --disable-socket --allow-unix-socket --import-mode=importlib"
 # Hypothesis keeps a local example DB; keep it out of the repo (.gitignore)
 
 # ---------------------------------------------------------------- coverage
 [tool.coverage.run]
-source = ["soc_shared", "soc_evals"]
+source = ["soc_shared", "soc_evals", "wazuh_mcp", "enrichment_mcp"]
 branch = true
 
 [tool.coverage.report]
 show_missing = true
+# `python -m <service>` entry points only start a server; they are run in VERIFY, not in unit tests.
+omit = ["*/__main__.py"]
 skip_covered = true
