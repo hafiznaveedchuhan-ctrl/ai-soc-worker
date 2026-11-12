@@ -4,21 +4,21 @@ Protocol: `CLAUDE.md` §1. Plan of record: `specs/00-final-plan.txt` (v2). Const
 **Append-only:** add a new session block at the bottom; never delete or edit an old (closed) block.
 Only the "READ ME FIRST" box below is rewritten in place, every session.
 
-> ## READ ME FIRST (rewritten every session — last: session 1, 2026-11-12T06:20Z)
-> **Where we are:** Feature 01 (foundation) **VERIFIED by Naveed** (2026-11-12). PR #1 merged earlier with only 2 commits; **PR #2 holds the rest** and is now ready to merge.
-> Branch `feat/01-foundation` is pushed, CI is green, and **draft PR #2 to main** is open: https://github.com/hafiznaveedchuhan-ctrl/ai-soc-worker/pull/2.
-> **Next step:** Naveed runs `specs/01-foundation/VERIFY.md` → says "verified" → marks the PR ready and merges it himself →
-> Claude starts **feature 02 (evals-first)**: a NEW branch `feat/02-evals-first` from the updated main → INTENT (draft in plan v2 §12) → spec → plan → tasks → STOP.
-> **Blocked on Naveed:** verify 01 + merge the PR · rotate the old OpenAI/Anthropic keys · set the $10 OpenAI limit.
-> **Push rule:** commit + push the feature branch every 3–4 tasks (standing, PHR-0004); never main; Naveed merges.
-> **After the PR is merged: NEVER push to `feat/01-foundation` again.**
+> ## READ ME FIRST (rewritten every session — last: session 1, 2026-11-12T06:45Z)
+> **Where we are:** Feature 01 **verified + merged** (PR #1 + PR #2). Feature 02 (evals-first) docs written on branch
+> `feat/02-evals-first` (pushed) → **waiting for Naveed's "approved" + answers to INTENT Q1–Q4**.
+> **Next step:** Naveed approves `specs/02-evals-first/{INTENT,spec,plan,tasks}.md` and answers Q1 (OTRF download "haan"?),
+> Q2 (Wazuh ruleset lookup for missing rule IDs OK?), Q3 (≥ 20 TP), Q4 (accept both MITRE IDs) → Claude implements T02-01…T02-15.
+> **Blocked on Naveed:** the above · rotate the old OpenAI/Anthropic keys · set the $10 OpenAI limit · `ABUSEIPDB_API_KEY` before feature 03.
+> **Push rule:** commit + push the feature branch every 3–4 tasks (PHR-0004). **Guard before every push:** `gh pr list --head <branch> --state merged` is empty (PHR-0006).
+> **Never push to `feat/01-foundation` again** (merged).
+> **`.env`:** `backend/.env` exists (600, gitignored). Naveed filled OPENAI_API_KEY + SOC_DB_URL; Claude filled non-secret defaults + generated MASK_MAP_KEY without displaying it. Never read or print it.
 > **MVP:** features 01–06 + `make demo-ask` / `make demo-triage` by **2026-11-25**.
-> **Never:** read `.env` · make a paid call without "haan" · touch ../handbook.
 >
 > | # | Feature | State |
 > |---|---|---|
-> | 01 | foundation | **verified** — PR #2 ready to merge (Naveed merges) |
-> | 02 | evals-first | not started (next) |
+> | 01 | foundation | **verified** (merged) |
+> | 02 | evals-first | tasks — awaiting approval + Q1–Q4 |
 > | 03–10 | — | not started |
 
 ---
@@ -26,7 +26,7 @@ Only the "READ ME FIRST" box below is rewritten in place, every session.
 ## Session 1 — 2026-11-12
 
 ## Last updated (ISO date-time, session number)
-2026-11-12T06:20Z · session 1
+2026-11-12T06:45Z · session 1 (block updated during the session; the session is still open)
 
 ## Done this session (items + files + commit hashes)
 - **Read the handbook handoff (READ ONLY):** `../handbook/progress.md` HANDOFF — FINAL, `instance.md`,
@@ -55,12 +55,18 @@ Only the "READ ME FIRST" box below is rewritten in place, every session.
 
 - **CI:** run 43166277801 on `9d2cd6f`. `python` succeeded, `secrets` (gitleaks over full history) succeeded.
 - **Memory saved:** "plans as .txt before approval" and "push every 3–4 tasks".
+- **Feature 01 verified** by Naveed. The PR #2 merge error was caused by its draft status; fixed with `gh pr ready 2`. Naveed merged PR #2 at 06:22Z (main = 9489133). PHR-0006.
+- **`backend/.env`** created from `.env.example` (mode 600, gitignored). Naveed filled `OPENAI_API_KEY` and `SOC_DB_URL`.
+  Claude filled only the empty non-secret lines with `sed` (WAZUH_MODE, the budgets, HANDBOOK_MCP_URL, AUTH_MODE, CORS_ORIGINS) and generated `MASK_MAP_KEY` without displaying it. The file was never read or printed (only the variable names were listed).
+- **Feature 02 docs** on the new branch `feat/02-evals-first` (from main 9489133): INTENT (Q1–Q4), spec, plan, tasks, VERIFY draft, ADR-0009 (Proposed), PHR-0007.
+  Checked first (read only): the handbook's Wazuh rule tables (windows-rules-reference, sshd-rules-reference, FIM playbook), the MITRE page list, the event pages, the false-positive pages.
+  Licences checked through the GitHub API: OTRF/Security-Datasets = MIT; splunk/botsv1 = CC0-1.0.
 
 ## Current state (feature table 01–10: not started / intent / spec / plan / tasks / implementing / verified)
 | # | Feature | State | Branch | Notes |
 |---|---|---|---|---|
-| 01 | foundation | **verified** (human:naveed, 2026-11-12) | feat/01-foundation → PR #1 merged (2 commits) + PR #2 (5 commits, ready) | 153 tests, coverage 98.99%, CI green |
-| 02 | evals-first | not started | — | INTENT draft is in plan v2 §12; needs OK before any OTRF download |
+| 01 | foundation | **verified** (human:naveed, 2026-11-12) — merged | PR #1 + PR #2 merged (main 9489133) | 153 tests, coverage 98.99%, CI green |
+| 02 | evals-first | tasks — awaiting approval | feat/02-evals-first | Q1 OTRF download · Q2 ruleset lookup · Q3 ≥ 20 TP · Q4 MITRE renumbering |
 | 03 | mcp-services | not started | — | |
 | 04 | handbook-client | not started | — | live demo needs "haan" (embedding cost) |
 | 05 | agents-core | not started | — | model name + price to verify |
@@ -113,9 +119,9 @@ Only the "READ ME FIRST" box below is rewritten in place, every session.
 - **Hypothesis found an edge case:** `0.0.0.0` and `::ffff:0:0` share one token, so the round-trip test failed. This is intended (FR-01-31). Fix: the round-trip property excludes IPv4-mapped forms, and a new property test proves they share the token.
 
 ## Pending / blocked (reason + who acts: Naveed or Claude)
-- **Naveed:** merge PR #2 (https://github.com/hafiznaveedchuhan-ctrl/ai-soc-worker/pull/2). After that merge, nobody pushes to `feat/01-foundation` again.
-- **Claude (after merge):** start feature 02 on a NEW branch `feat/02-evals-first` from the updated `main`.
-- **Naveed (for 02):** decide whether OTRF Security-Datasets may be downloaded (free public GitHub). Claude checks the licence first.
+- **Naveed:** approve feature 02 docs + answer Q1–Q4 in `specs/02-evals-first/INTENT.md`.
+- **Naveed (before feature 03):** create a free AbuseIPDB account and put the key in `backend/.env` (`ABUSEIPDB_API_KEY`).
+- **Claude (after approval):** T02-01…T02-15.
 
 ## Eval results so far (numbers)
 - None yet; feature 02 defines the sets.
@@ -127,17 +133,17 @@ Only the "READ ME FIRST" box below is rewritten in place, every session.
 - Handbook retrieval evals, for reference: in-scope 80/80 = 100%.
 
 ## Exact next step for the next session
-1. Read this block and run `git status` and `git branch --show-current`.
-2. If Naveed has verified and merged PR #2 (feature 01, https://github.com/hafiznaveedchuhan-ctrl/ai-soc-worker/pull/2): `git checkout main && git pull`, then `git checkout -b feat/02-evals-first`.
-   Copy the templates into `specs/02-evals-first/` and write INTENT.md from plan v2 §12. Write spec.md, plan.md and tasks.md (also draft ADR-0009 on data sources and licences). STOP for approval.
-3. If he has not verified yet: help him run VERIFY.md and fix anything he finds, on `feat/01-foundation`. This is allowed only while its PR is unmerged.
+1. Read this block; run `git status` and `git branch --show-current` (expect `feat/02-evals-first`).
+2. If Naveed approved feature 02 and answered Q1–Q4 → record his answers in INTENT.md and ADR-0009, then start T02-01 and follow tasks.md.
+   OTRF download and the Wazuh ruleset read happen only if Q1/Q2 = yes.
+3. If not → ask him to review `specs/02-evals-first/` (short Roman Urdu summary of Q1–Q4).
 
 ## Naveed's manual actions needed
 - Rotate the OpenAI and Anthropic keys (pasted in an earlier chat).
 - Set a $10 monthly usage limit in the OpenAI dashboard.
-- Verify feature 01 with `specs/01-foundation/VERIFY.md`, then merge the PR.
+- Approve feature 02 docs + answer Q1–Q4.
+- Before feature 03: free AbuseIPDB account → `ABUSEIPDB_API_KEY` in `backend/.env`.
 - Later (not now):
   - Neon db `soc_worker` (feature 08);
   - Auth0 tenant (08);
-  - keys in `backend/.env`;
   - `npm run serve` in ../handbook (04).
