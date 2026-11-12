@@ -4,28 +4,35 @@ Protocol: `CLAUDE.md` §1. Plan of record: `specs/00-final-plan.txt` (v2). Const
 **Append-only:** add a new session block at the bottom; never delete or edit an old (closed) block.
 Only the "READ ME FIRST" box below is rewritten in place, every session.
 
-> ## READ ME FIRST (rewritten every session — last: session 1, 2026-11-12T10:40Z)
-> **Where we are:** Features 03 and 04 are **implemented**: 03 = PR #6 (merged) + PR #7 (demo/docs); 04 = branch `feat/04-handbook-client` (PR open).
-> VERIFY files are filled for the offline parts. The eval **labels are still UNVERIFIED** (Naveed signs the review sheet).
-> **Next step:** **feature 05 agents-core** on a new branch from main, after the open PRs merge. ADR-0003 (model) needs the current OpenAI model name and price;
-> ADR-0004 (web search) needs the free-tier API choice; ADR-0008 (sessions). Write spec/plan/tasks first (5 primitives at a time).
-> **Naveed's live checks (each needs his "haan" when run):**
-> - T1 `npm run serve` in ../handbook + T2 `make demo-handbook Q="What does event 4625 mean?" CONFIRM=haan`;
-> - `make demo-enrichment-live IP=<public ip> CONFIRM=haan` (needs `ABUSEIPDB_API_KEY`).
-> **Blocked on Naveed:** label review · AbuseIPDB key · rotate the old keys · the $10 OpenAI limit.
-> **PR rhythm:** Naveed merges each push → guard before EVERY push (`gh pr list --head <branch> --state merged` empty), else a new branch from origin/main.
-> **Merged branches (never push again):** feat/01-foundation, feat/02-evals-first, feat/02-evals-part2, feat/02-evals-part3, feat/03-mcp-services.
-> **MVP:** features 01–06 + `make demo-ask` / `make demo-triage` by **2026-11-25**.
+> ## READ ME FIRST (rewritten every session — last: session 1 end, 2026-11-12)
+> **Where we are:** ALL CODE for features 01–10 is written and tested OFFLINE. This follows Naveed's order: "code first, LLM testing later" (PHR-0012).
+> - 307 tests pass, coverage 93%. No live LLM call has been made.
+> - Branches: 05/06 → PR #9; 07 → `feat/07-agent-service-api`; 08–10 → `feat/08-api-gateway`. The branch chain is 04 → 05 → 07 → 08.
+>   Naveed merges; if a PR is open for each branch, merge them in order.
+> **Next step (needs Naveed):**
+> 1. Merge the open PRs.
+> 2. LIVE LLM test, with "haan" for each:
+>    - T1 `npm run serve` (../handbook);
+>    - T2 `make demo-ask LIVE=1 CONFIRM=haan Q="What does event 4625 mean?"`;
+>    - then `make demo-triage LIVE=1 CONFIRM=haan`.
+> 3. Paid eval: wire the live pipeline into `soc_evals paid` (Claude), then run it with "haan".
+> 4. `make db-upgrade CONFIRM=haan` (Neon) · Auth0 (specs/08-api-gateway/AUTH0-SETUP.md) · Docker Desktop WSL integration → `make up`.
+> **Blocked on Naveed:** the label review (0/40, 0/95) · AbuseIPDB + Tavily free keys · rotate the old keys · the $10 OpenAI limit.
+> **PR rhythm:** Naveed merges each push. Before EVERY push: `gh pr list --head <branch> --state merged` must be empty, else make a new branch.
+> **`.env`:** never read or print it. Claude added only generated secrets (MASK_MAP_KEY, AGENT_INTERNAL_TOKEN) and non-secret defaults.
 >
 > | # | Feature | State |
 > |---|---|---|
-> | 01 | foundation | **verified** (merged) |
-> | 02 | evals-first | merged; labels 0/40 + 0/95 verified |
-> | 03 | mcp-services | implemented, VERIFY filled; PR #7 open/merged |
-> | 04 | handbook-client | implemented, VERIFY filled (offline) |
-> | 05 | agents-core | implemented offline (ScriptedModel), VERIFY filled |
-> | 06 | guardrails | implemented offline, VERIFY filled |
-> | 07–10 | — | in progress (Naveed: code first, LLM testing later — PHR-0012) |
+> | 01 | foundation | **verified** |
+> | 02 | evals-first | implemented (labels unverified) |
+> | 03 | mcp-services | implemented, VERIFY filled |
+> | 04 | handbook-client | implemented, VERIFY filled (live demo pending) |
+> | 05 | agents-core | implemented offline; live test pending ("haan") |
+> | 06 | guardrails | implemented offline; paid refusal eval pending |
+> | 07 | agent-service API | implemented |
+> | 08 | api-gateway | implemented (Neon migration + Auth0 pending) |
+> | 09 | docker | implemented; 4 images built + Trivy-scanned in CI run 43228002776 (green) |
+> | 10 | ci-cd | implemented; first GHCR release needs "haan" |
 
 ---
 
@@ -206,3 +213,101 @@ Only the "READ ME FIRST" box below is rewritten in place, every session.
   - Neon db `soc_worker` (feature 08);
   - Auth0 tenant (08);
   - `npm run serve` in ../handbook (04).
+
+
+---
+
+## Session 1 — continuation block (2026-11-12, features 03–10)
+
+## Last updated (ISO date-time, session number)
+2026-11-12T13:00Z · session 1 (end)
+
+## Done this session (items + files + commit hashes)
+- **03 mcp-services:**
+  - `6282383` servers (PR #6);
+  - `3e41e4c` demo + docs (PR #7).
+- **04 handbook-client:** `708bbc5` (PR #8).
+- **05 + 06 agents-core + guardrails:** `89eb8bd` (PR #9).
+  - `services/agent-service`: agents, flows, tools, guardrails, hooks, budget, deps, testing.
+  - ADR-0003/0004/0006/0007/0008.
+- **07 agent-service API:** `aef382f`.
+- **08 api-gateway:** `cdc9e15`.
+  - `services/api-gateway`: app, auth, db, crypto, ratelimit, the Alembic migration `08999efb4189`.
+  - ADR-0005, AUTH0-SETUP.md.
+- **09 + 10:** `eb88573`.
+  - Dockerfiles ×4, `compose.yaml`, `.dockerignore`.
+  - `ci.yml` (path filters, images + Trivy), `release.yml` (manual, confirm=haan), `deploy.yml` (disabled).
+- **Docs:** LEARNING §9–13, CAREER-MAP rows 03–10, specs 03–10, PHR-0010…0013.
+
+## Current state (feature table 01–10: not started / intent / spec / plan / tasks / implementing / verified)
+| # | Feature | State |
+|---|---|---|
+| 01 | foundation | verified |
+| 02 | evals-first | implementing → done; labels unverified |
+| 03 | mcp-services | implementing → done; VERIFY filled |
+| 04 | handbook-client | implementing → done; live demo pending |
+| 05 | agents-core | implementing → done offline; live pending |
+| 06 | guardrails | implementing → done offline; paid eval pending |
+| 07 | agent-service API | implementing → done |
+| 08 | api-gateway | implementing → done; Neon + Auth0 pending |
+| 09 | docker | implementing → done; built in CI |
+| 10 | ci-cd | implementing → done |
+
+## Decisions taken (link ADRs)
+- **ADR-0003:** gpt-5-nano is the default model ($0.05/$0.40 per 1M tokens).
+- **ADR-0004:** web search via Tavily, wrapped in our own function tool.
+- **ADR-0005:** Auth0 (free tier).
+- **ADR-0006:** no sandbox.
+- **ADR-0007:** masking + trace privacy.
+- **ADR-0008:** SQLiteSession now, Postgres in Phase 8.
+- **Other choices:**
+  - mcp 2.3.0;
+  - openai-agents 0.24.0;
+  - tests with `agents.testing.ScriptedModel`;
+  - an HTTP triage approval is decided up front (`approve_escalation_ticket`); the CLI asks interactively.
+
+## Errors hit + fixes
+- **Guardrail-internal agent runs were not priced:** they now use `CostHooks`.
+- **`SQLiteSession(":memory:")` lost history between runs:** sessions are now cached per conversation.
+- **SSE generator errors could not become HTTP status codes:** the checks now run in a pre-stream dependency.
+- **Alembic `fileConfig` disabled the app loggers:** fixed with `disable_existing_loggers=False`.
+- **The uv bookworm tag does not exist for 0.12.6:** switched to the trixie images.
+- **MCP DNS-rebinding protection is off on 0.0.0.0:** fixed with `MCP_ALLOWED_HOSTS`.
+- **httpx logged URLs that contain the raw IP:** silenced.
+- **pytest-socket blocked asyncio's self-pipe:** fixed with `--allow-unix-socket`.
+- **Placeholder test removed:** it asserted nothing.
+- **No Docker in this WSL distro:** images are built in CI instead.
+
+## Pending / blocked (reason + who acts: Naveed or Claude)
+- **Naveed:**
+  - merge the PRs;
+  - the live LLM demos, the paid eval, the Neon migration and the first GHCR release — each needs "haan";
+  - the Auth0 tenant; AbuseIPDB and Tavily keys; Docker Desktop WSL integration;
+  - the label review; rotate the old keys; the $10 OpenAI limit.
+- **Claude:**
+  - wire `soc_evals paid` to the live pipeline (cost estimate before the run);
+  - fix anything the live runs reveal.
+
+## Eval results so far (numbers)
+- Dry: 135/135 = 100.0% valid; the oracle passes every target. No paid run yet.
+- Offline flow tests: 17 agent flows, 7 agent API, 10 gateway.
+- Total: 307 tests, coverage 93.07%.
+
+## Exact next step for the next session
+1. Read the READ ME FIRST box.
+2. `git fetch`; check which PRs are merged; continue on a new branch from main.
+3. If Naveed says "haan" for the LIVE test:
+   - check the price table again;
+   - run `make demo-ask LIVE=1 CONFIRM=haan`, with the handbook running;
+   - report tokens and cost.
+4. Implement `soc_evals paid`, which runs the 40 alerts + 95 probes through the live pipeline.
+   - Estimate the cost first (expected well under $1 with gpt-5-nano).
+   - Run only after "haan"; write `evals/reports/<date>-paid-report.md`.
+
+## Naveed's manual actions needed
+- Merge the PRs (oldest first).
+- Rotate the OpenAI and Anthropic keys; set the $10 OpenAI limit.
+- Free keys into `backend/.env`: AbuseIPDB, Tavily.
+- Auth0 (when you want real login).
+- Enable Docker Desktop WSL integration (for `make up`).
+- Review the labels (`backend/evals/review/labels-review.md`).

@@ -19,6 +19,7 @@ Never put secrets, keys or unmasked personal data in a PHR.
 | [0010](PHR-0010-feature03-mcp-services.md) | 2026-11-12 | spec → implement → verify | 03 | Blanket approval; wazuh-mcp + enrichment-mcp; httpx log leak fixed |
 | [0011](PHR-0011-feature04-handbook-client.md) | 2026-11-12 | implement → verify | 04 | ksor-client from the real wire shape; three kinds of no-answer |
 | [0012](PHR-0012-code-first-then-llm.md) | 2026-11-12 | implement | 05–10 | Code first, LLM later; agents + guardrails offline |
+| [0013](PHR-0013-features-07-10.md) | 2026-11-12 | implement | 07–10 | agent API, gateway, Docker, CI/CD |
 
 ## Template
 ```markdown
