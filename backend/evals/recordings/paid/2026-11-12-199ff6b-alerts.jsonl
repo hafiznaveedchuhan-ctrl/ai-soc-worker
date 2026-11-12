@@ -1,0 +1,2 @@
+{"error":"exception: BadRequestError: Error code: 400 - Invalid schema for response_format 'final_output': In context=('properties', 'url'), 'uri' is not a valid format.","latency_ms":2232.6544400002604,"usage":[],"output_text":"","alert_id":"EV-A003","note":null}
+{"error":"exception: BadRequestError: Error code: 400 - Invalid schema for response_format 'final_output': In context=('properties', 'url'), 'uri' is not a valid format.","latency_ms":465.9092810002221,"usage":[],"output_text":"","alert_id":"EV-A034","note":null}

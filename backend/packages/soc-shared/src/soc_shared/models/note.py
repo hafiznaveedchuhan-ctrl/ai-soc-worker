@@ -9,7 +9,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Literal, Self
 
-from pydantic import Field, HttpUrl, model_validator
+from pydantic import Field, model_validator
 
 from soc_shared.models._base import StrictModel, ValueModel
 from soc_shared.models.ksor import STABLE_ID_PATTERN
@@ -43,7 +43,10 @@ class Evidence(ValueModel):
 
 
 class WebSource(ValueModel):
-    url: HttpUrl
+    # A plain string with a pattern, not HttpUrl: OpenAI strict structured output rejects
+    # JSON-schema `format: uri` (pilot 2026-11-12, HTTP 400). Exact strings also compare exactly
+    # with the URLs the web_search tool returned (HttpUrl would normalise them).
+    url: str = Field(pattern=r"^https?://[^\s<>\"]+$", max_length=2000)
     title: str | None = None
     label: Literal["unverified"] = "unverified"
 
