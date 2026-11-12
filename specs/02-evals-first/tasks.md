@@ -22,8 +22,8 @@ Legend: [ ] todo · [x] done · **STOP** = wait for Naveed · ⬆ = commit + pus
 | [x] | T02-11 | Recordings: oracle.jsonl (from labels) + faulty.jsonl (planted mistakes) | FR-02-22 | oracle → all PASS; faulty → exactly the planted fails | T02-04, 10 |
 | [x] | T02-12 | Report template + renderer + `make eval-dry` + `make eval` refusal + `make eval-stats` | FR-02-16, 20, 21, 23 | dry report written; golden test | T02-11 |
 | [x] | T02-13 | Review sheet `make eval-review` → `review/labels-review.md` | FR-02-24 | file generated | T02-10 |
-| [ ] | T02-14 | CI: soc-evals in mypy/pytest + `make eval-dry` step; ADR-0009 final; LEARNING §8; CAREER-MAP row 02 | NFR-02-02 | CI green | T02-12 |
-| [ ] | T02-15 | Full gate; VERIFY.md §4 with real output; progress.md; PHR | all | gates green | T02-14 |
+| [x] | T02-14 | CI: soc-evals in mypy/pytest + `make eval-dry` step; ADR-0009 final; LEARNING §8; CAREER-MAP row 02 | NFR-02-02 | CI green | T02-12 |
+| [x] | T02-15 | Full gate; VERIFY.md §4 with real output; progress.md; PHR | all | gates green | T02-14 |
 | | ⬆ | **checkpoint 4** → open PR `feat/02-evals-first → main` (ready for review) | | PR link | |
 | | **STOP** | **Naveed verifies labels (review sheet) + runs VERIFY.md → merges** | | merged | |
 
