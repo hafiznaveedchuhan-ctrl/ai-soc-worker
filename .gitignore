@@ -30,3 +30,7 @@ htmlcov/
 *.sqlite
 *.sqlite3
 *.db
+
+# local LLM spend ledger + agent sessions (feature 05/11) — local state, never committed
+backend/.agent-ledger.json
+backend/.agent-sessions.sqlite
