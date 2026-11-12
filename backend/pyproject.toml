@@ -45,6 +45,7 @@ explicit_package_bases = true
 [tool.pytest.ini_options]
 testpaths = ["packages", "tests"]
 addopts = "-q --disable-socket --import-mode=importlib"
+# Hypothesis keeps a local example DB; keep it out of the repo (.gitignore)
 
 # ---------------------------------------------------------------- coverage
 [tool.coverage.run]
