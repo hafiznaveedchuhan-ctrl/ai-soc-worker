@@ -1,0 +1,48 @@
+{
+  "id": "EV-A035",
+  "timestamp": "2020-10-19T07:30:46.660Z",
+  "rule": {
+    "id": "92068",
+    "level": 3,
+    "description": "PSEXEC was used to execute: \"reg\" save HKLM\\security\\policy\\secrets",
+    "groups": [
+      "sysmon",
+      "sysmon_event1"
+    ],
+    "mitre": {
+      "id": [
+        "T1569.002"
+      ]
+    }
+  },
+  "agent": {
+    "id": "012",
+    "name": "WORKSTATION5"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "location": "EventChannel",
+  "data": {
+    "win": {
+      "system": {
+        "eventID": "1",
+        "computer": "WORKSTATION5",
+        "channel": "Microsoft-Windows-Sysmon/Operational",
+        "providerName": "Microsoft-Windows-Sysmon",
+        "systemTime": "2020-10-19T07:30:46.660Z"
+      },
+      "eventdata": {
+        "image": "C:\\Windows\\System32\\reg.exe",
+        "commandLine": "\"reg\" save HKLM\\security\\policy\\secrets C:\\Users\\wardog\\AppData\\Local\\Temp\\secrets",
+        "parentImage": "C:\\Windows\\PSEXESVC.exe",
+        "parentCommandLine": "C:\\windows\\PSEXESVC.exe",
+        "user": "NT AUTHORITY\\SYSTEM"
+      }
+    }
+  },
+  "full_log": "Process Create: reg.exe save HKLM\\security\\policy\\secrets, parent PSEXESVC.exe, user NT AUTHORITY\\SYSTEM."
+}

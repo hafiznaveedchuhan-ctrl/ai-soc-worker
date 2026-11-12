@@ -1,0 +1,36 @@
+{
+  "id": "EV-A032",
+  "timestamp": "2026-11-11T02:10:05Z",
+  "rule": {
+    "id": "5731",
+    "level": 6,
+    "description": "sshd: SSH Scanning.",
+    "groups": [
+      "syslog",
+      "sshd",
+      "recon"
+    ],
+    "mitre": {
+      "id": [
+        "T1046"
+      ]
+    }
+  },
+  "agent": {
+    "id": "004",
+    "name": "lab-srv02",
+    "ip": "192.168.56.20"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "sshd"
+  },
+  "location": "/var/log/auth.log",
+  "data": {
+    "srcip": "198.51.100.140",
+    "srcport": "33012"
+  },
+  "full_log": "Nov 11 02:10:05 lab-srv02 sshd[2050]: Did not receive identification string from 198.51.100.140 port 33012"
+}

@@ -1,0 +1,45 @@
+{
+  "id": "EV-A038",
+  "timestamp": "2020-08-06T06:27:10.554Z",
+  "rule": {
+    "id": "67028",
+    "level": 3,
+    "description": "Special privileges assigned to new logon.",
+    "groups": [
+      "windows"
+    ],
+    "mitre": {
+      "id": [
+        "T1484"
+      ]
+    }
+  },
+  "agent": {
+    "id": "013",
+    "name": "WORKSTATION6"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "location": "EventChannel",
+  "data": {
+    "win": {
+      "system": {
+        "eventID": "4672",
+        "computer": "WORKSTATION6.theshire.local",
+        "channel": "Security",
+        "providerName": "Microsoft-Windows-Security-Auditing",
+        "systemTime": "2020-08-06T06:27:10.554Z"
+      },
+      "eventdata": {
+        "subjectUserName": "pgustavo",
+        "subjectDomainName": "THESHIRE",
+        "privilegeList": "SeSecurityPrivilege SeBackupPrivilege SeRestorePrivilege SeTakeOwnershipPrivilege SeDebugPrivilege SeSystemEnvironmentPrivilege SeLoadDriverPrivilege SeImpersonatePrivilege SeDelegateSessionUserImpersonatePrivilege"
+      }
+    }
+  },
+  "full_log": "Special privileges assigned to new logon: THESHIRE\\pgustavo (SeDebugPrivilege, SeLoadDriverPrivilege, ...)."
+}

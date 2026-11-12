@@ -19,3 +19,7 @@ EV-A027,svc-sql is listed in etc/lists/service-accounts with allowed host lab-sq
 EV-A028,"svc-web is listed with allowed host lab-web01 and scheduled job 'log-rotate' (Type 4, 04:30 daily)."
 EV-A029,10.10.50.5 is in etc/lists/approved-scanners; recorded schedule: Tuesday 20:00–22:00 UTC weekly.
 EV-A030,10.10.50.5 is in etc/lists/approved-scanners; recorded schedule: Tuesday 20:00–22:00 UTC weekly.
+EV-A031,The 18 dropped packets hit 18 different TCP ports on lab-web01 within 40 seconds.
+EV-A033,The script block ran in a PowerShell session started by WINWORD.EXE (Office) for LAB\alice.
+EV-A036,No admin work was scheduled on WORKSTATION5; 0.3 s later PSEXESVC started reg.exe (alert EV-A035).
+EV-A039,Created 21 seconds after the Type 3 logon of pgustavo from 172.18.39.5 (alert EV-A037).

@@ -1,0 +1,48 @@
+{
+  "id": "EV-A037",
+  "timestamp": "2020-08-06T06:27:10.554Z",
+  "rule": {
+    "id": "60106",
+    "level": 3,
+    "description": "Windows Logon Success",
+    "groups": [
+      "windows",
+      "authentication_success"
+    ],
+    "mitre": {
+      "id": [
+        "T1078"
+      ]
+    }
+  },
+  "agent": {
+    "id": "013",
+    "name": "WORKSTATION6"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "location": "EventChannel",
+  "data": {
+    "win": {
+      "system": {
+        "eventID": "4624",
+        "computer": "WORKSTATION6.theshire.local",
+        "channel": "Security",
+        "providerName": "Microsoft-Windows-Security-Auditing",
+        "systemTime": "2020-08-06T06:27:10.554Z"
+      },
+      "eventdata": {
+        "targetUserName": "pgustavo",
+        "targetDomainName": "THESHIRE.LOCAL",
+        "logonType": "3",
+        "ipAddress": "172.18.39.5",
+        "workstationName": "-"
+      }
+    }
+  },
+  "full_log": "Network logon (Type 3) for THESHIRE\\pgustavo on WORKSTATION6 from 172.18.39.5."
+}

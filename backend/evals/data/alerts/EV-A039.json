@@ -1,0 +1,48 @@
+{
+  "id": "EV-A039",
+  "timestamp": "2020-08-06T06:27:31.787Z",
+  "rule": {
+    "id": "61138",
+    "level": 5,
+    "description": "New Windows Service Created",
+    "groups": [
+      "windows",
+      "windows_system"
+    ],
+    "mitre": {
+      "id": [
+        "T1543.003"
+      ]
+    }
+  },
+  "agent": {
+    "id": "013",
+    "name": "WORKSTATION6"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "location": "EventChannel",
+  "data": {
+    "win": {
+      "system": {
+        "eventID": "7045",
+        "computer": "WORKSTATION6.theshire.local",
+        "channel": "System",
+        "providerName": "Service Control Manager",
+        "systemTime": "2020-08-06T06:27:31.787Z"
+      },
+      "eventdata": {
+        "serviceName": "OTR",
+        "imagePath": "C:\\Windows\\System32\\GruntHTTP2.exe",
+        "serviceType": "user mode service",
+        "startType": "auto start",
+        "accountName": "pgustavo"
+      }
+    }
+  },
+  "full_log": "A service was installed: OTR, C:\\Windows\\System32\\GruntHTTP2.exe, auto start, run as pgustavo."
+}

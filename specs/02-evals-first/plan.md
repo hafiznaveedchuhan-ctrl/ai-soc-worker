@@ -55,8 +55,8 @@ backend/docs/LEARNING.md §8 "Evals", CAREER-MAP row 02
 | Item | Source | Why |
 |---|---|---|
 | Wazuh alert JSON field names for Windows eventchannel, sshd, syscheck | handbook `knowledge/wazuh/alert-json-anatomy` (read only) | fixtures must match real shape |
-| OTRF dataset format + licence | github.com/OTRF/Security-Datasets README + LICENSE (only after Q1 "haan") | mapping + attribution |
-| Wazuh ruleset v4.14.10 rule IDs for port scan / PowerShell / Sysmon | github.com/wazuh/wazuh ruleset (only after Q2 OK) | no invented IDs |
+| OTRF dataset format + licence | **checked 2026-11-12**: LICENSE = MIT (text copied into THIRD_PARTY_NOTICES.md); events are flat JSON lines (EventID, Channel, Hostname, Windows XML field names); times: `UtcTime`/`@timestamp` | mapping + attribution |
+| Wazuh ruleset v4.14.10 rule IDs for port scan / PowerShell / Sysmon | **checked 2026-11-12**: 0900-firewall_rules.xml L27 (4151, level 10, 18 drops/45 s); 0915-win-powershell_rules.xml L74 (91809, level 10, T1140), L432 (91844, level 12, T1547.001/T1059.001/T1112); 0800-sysmon_id_1.xml L734 (92068, level 3, T1569.002); 0945-sysmon_id_10.xml L10 (92900 needs grantedAccess 0x1010/0x40) | no invented IDs; field paths confirm camelCase `win.eventdata.scriptBlockText` |
 | Python `statistics` / nearest-rank percentile | docs.python.org | p95 definition |
 
 ## 5. Test strategy

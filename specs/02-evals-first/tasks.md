@@ -14,10 +14,10 @@ Legend: [ ] todo · [x] done · **STOP** = wait for Naveed · ⬆ = commit + pus
 | [x] | T02-05 | KSOR reference snapshots (read-only script over ../handbook file names) | FR-02-06 | files + test | T02-01 |
 | [x] | T02-06 | Scope probes CSV (95 rows) + loader + count/label tests | FR-02-05 | 95/95 valid | T02-05 |
 | | ⬆ | **checkpoint 2** | | pushed | |
-| [ ] | T02-07 | (if Q2 OK) read Wazuh ruleset v4.14.10 for the missing rule IDs; record file:line | FR-02-04 | source table in plan.md | STOP |
-| [~] | T02-08 | Alerts batch 1: 22 playbook alerts (SYNTHETIC) + label rows with rationale/sources | FR-02-01…04 | loader + fact tests green | T02-05, 07 |
+| [x] | T02-07 | (if Q2 OK) read Wazuh ruleset v4.14.10 for the missing rule IDs; record file:line | FR-02-04 | source table in plan.md | STOP |
+| [x] | T02-08 | Alerts batch 1: 22 playbook alerts (SYNTHETIC) + label rows with rationale/sources | FR-02-01…04 | loader + fact tests green | T02-05, 07 |
 | [x] | T02-09 | Alerts batch 2: 10 benign/FP alerts (false-positive pages) | FR-02-02…04 | green | T02-08 |
-| [ ] | T02-10 | Alerts batch 3: 8 OTRF-mapped (if Q1 "haan", download → map script) else 8 SYNTHETIC; composition test | FR-02-01…04, 07 | 40/40 valid, minimums met | T02-09 |
+| [x] | T02-10 | Alerts batch 3: 8 OTRF-mapped (if Q1 "haan", download → map script) else 8 SYNTHETIC; composition test | FR-02-01…04, 07 | 40/40 valid, minimums met | T02-09 |
 | | ⬆ | **checkpoint 3** | | pushed | |
 | [x] | T02-11 | Recordings: oracle.jsonl (from labels) + faulty.jsonl (planted mistakes) | FR-02-22 | oracle → all PASS; faulty → exactly the planted fails | T02-04, 10 |
 | [x] | T02-12 | Report template + renderer + `make eval-dry` + `make eval` refusal + `make eval-stats` | FR-02-16, 20, 21, 23 | dry report written; golden test | T02-11 |
@@ -34,3 +34,5 @@ Legend: [ ] todo · [x] done · **STOP** = wait for Naveed · ⬆ = commit + pus
 - Added: `data/context.csv` (analyst-provided context such as change tickets — an INPUT, masked like the alert) and
   label column `also_conditions` (other escalation conditions that are also true; the scorer accepts any of them).
 - soc-shared fix: built-in GROUP names (Administrators, Domain Admins, …) stay unmasked (condition 6 needs them).
+- 2026-11-12 "all haan": Q2 → ruleset read (4 alerts EV-A031…A034); Q1 → OTRF downloaded to the scratchpad only; 6 alerts EV-A035…A040
+  from 2 datasets. 4 other datasets produce NO default Wazuh alert (detection gap, ADR-0009). Handbook has **10** playbooks (not 11).
