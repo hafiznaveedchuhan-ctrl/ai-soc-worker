@@ -1,0 +1,51 @@
+{
+  "id": "EV-A017",
+  "timestamp": "2026-11-11T04:12:03Z",
+  "rule": {
+    "id": "60204",
+    "level": 10,
+    "description": "Multiple Windows Logon Failures",
+    "groups": [
+      "windows",
+      "authentication_failures"
+    ],
+    "mitre": {
+      "id": [
+        "T1110"
+      ]
+    }
+  },
+  "agent": {
+    "id": "005",
+    "name": "lab-srv03",
+    "ip": "10.10.20.33"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "location": "EventChannel",
+  "data": {
+    "win": {
+      "system": {
+        "eventID": "4625",
+        "computer": "lab-srv03.lab.local",
+        "channel": "Security",
+        "providerName": "Microsoft-Windows-Security-Auditing",
+        "systemTime": "2026-11-11T04:12:03Z"
+      },
+      "eventdata": {
+        "targetUserName": "Administrator",
+        "targetDomainName": "LAB-SRV03",
+        "ipAddress": "203.0.113.61",
+        "logonType": "3",
+        "status": "0xc000006d",
+        "subStatus": "0xc000006a",
+        "workstationName": "-"
+      }
+    }
+  },
+  "full_log": "11 failed network logons for the built-in Administrator from 203.0.113.61 in 3 minutes."
+}

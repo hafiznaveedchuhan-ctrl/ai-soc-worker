@@ -1,0 +1,50 @@
+{
+  "id": "EV-A008",
+  "timestamp": "2026-11-08T23:15:40Z",
+  "rule": {
+    "id": "60154",
+    "level": 12,
+    "description": "Administrators Group Changed",
+    "groups": [
+      "windows",
+      "group_changed"
+    ],
+    "mitre": {
+      "id": [
+        "T1484"
+      ]
+    }
+  },
+  "agent": {
+    "id": "007",
+    "name": "lab-dc01",
+    "ip": "10.10.10.5"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "location": "EventChannel",
+  "data": {
+    "win": {
+      "system": {
+        "eventID": "4732",
+        "computer": "lab-dc01.lab.local",
+        "channel": "Security",
+        "providerName": "Microsoft-Windows-Security-Auditing",
+        "systemTime": "2026-11-08T23:15:40Z"
+      },
+      "eventdata": {
+        "targetUserName": "Administrators",
+        "targetSid": "S-1-5-32-544",
+        "memberName": "CN=erin,OU=Admins,DC=lab,DC=local",
+        "memberSid": "S-1-5-21-1111-2222-3333-1201",
+        "subjectUserName": "adm-frank",
+        "subjectDomainName": "LAB"
+      }
+    }
+  },
+  "full_log": "A member was added to a security-enabled local group: Administrators; member erin; by LAB\\adm-frank."
+}

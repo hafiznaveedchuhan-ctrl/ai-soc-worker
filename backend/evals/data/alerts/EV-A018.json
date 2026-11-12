@@ -1,0 +1,49 @@
+{
+  "id": "EV-A018",
+  "timestamp": "2026-11-11T06:31:09Z",
+  "rule": {
+    "id": "60106",
+    "level": 3,
+    "description": "Windows Logon Success",
+    "groups": [
+      "windows",
+      "authentication_success"
+    ],
+    "mitre": {
+      "id": [
+        "T1078"
+      ]
+    }
+  },
+  "agent": {
+    "id": "005",
+    "name": "lab-srv03",
+    "ip": "10.10.20.33"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "location": "EventChannel",
+  "data": {
+    "win": {
+      "system": {
+        "eventID": "4624",
+        "computer": "lab-srv03.lab.local",
+        "channel": "Security",
+        "providerName": "Microsoft-Windows-Security-Auditing",
+        "systemTime": "2026-11-11T06:31:09Z"
+      },
+      "eventdata": {
+        "targetUserName": "alice",
+        "targetDomainName": "LAB",
+        "ipAddress": "10.10.20.15",
+        "logonType": "3",
+        "workstationName": "LAB-WS01"
+      }
+    }
+  },
+  "full_log": "Network logon (Type 3) for LAB\\alice on lab-srv03 from lab-ws01."
+}

@@ -1,0 +1,38 @@
+{
+  "id": "EV-A004",
+  "timestamp": "2026-11-11T09:14:12Z",
+  "rule": {
+    "id": "5715",
+    "level": 3,
+    "description": "sshd: authentication success.",
+    "groups": [
+      "syslog",
+      "sshd",
+      "authentication_success"
+    ],
+    "mitre": {
+      "id": [
+        "T1078",
+        "T1021"
+      ]
+    }
+  },
+  "agent": {
+    "id": "004",
+    "name": "lab-srv02",
+    "ip": "192.168.56.20"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "sshd"
+  },
+  "location": "/var/log/auth.log",
+  "data": {
+    "srcip": "198.51.100.23",
+    "srcport": "60211",
+    "dstuser": "bob"
+  },
+  "full_log": "Nov 11 09:14:12 lab-srv02 sshd[3120]: Accepted password for bob from 198.51.100.23 port 60211 ssh2"
+}

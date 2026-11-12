@@ -52,6 +52,8 @@ class AlertLabel(BaseModel):
     severity: Severity
     escalate: bool
     escalate_condition: int | None = Field(default=None, ge=1, le=8)
+    # Other escalation conditions that are ALSO true (the scorer accepts any of them).
+    also_conditions: list[int] = Field(default_factory=list)
     mitre_ids: list[str] = Field(default_factory=list)
     expected_stable_ids: list[str] = Field(default_factory=list)
     rule_source: str = Field(min_length=1)
@@ -63,6 +65,10 @@ class AlertLabel(BaseModel):
     def _rules(self) -> Self:
         if self.escalate != (self.escalate_condition is not None):
             raise ValueError("escalate=yes needs escalate_condition and vice versa")
+        if any(not 1 <= c <= 8 for c in self.also_conditions) or (
+            self.also_conditions and not self.escalate
+        ):
+            raise ValueError("also_conditions must be 1-8 and only with escalate=yes")
         for m in self.mitre_ids:
             if not re.fullmatch(MITRE_ID_PATTERN, m):
                 raise ValueError(f"bad MITRE id {m!r}")
@@ -84,6 +90,7 @@ class AlertLabel(BaseModel):
                 **row,
                 "escalate": {"yes": True, "no": False}[row["escalate"].strip()],
                 "escalate_condition": row["escalate_condition"].strip() or None,
+                "also_conditions": [int(c) for c in _split(row.get("also_conditions", ""))],
                 "mitre_ids": _split(row["mitre_ids"]),
                 "expected_stable_ids": _split(row["expected_stable_ids"]),
                 "verified_by": row["verified_by"].strip() or None,
@@ -135,6 +142,8 @@ class Probe(BaseModel):
 @dataclass
 class EvalData:
     alerts: dict[str, WazuhAlert] = field(default_factory=dict)
+    # Analyst-provided context (e.g. a change ticket) — an INPUT, masked like the alert.
+    contexts: dict[str, str] = field(default_factory=dict)
     labels: dict[str, AlertLabel] = field(default_factory=dict)
     probes: dict[str, Probe] = field(default_factory=dict)
     ksor_mitre_ids: set[str] = field(default_factory=set)
@@ -173,6 +182,12 @@ def load(data_dir: Path = DATA) -> EvalData:
         if label.alert_id not in out.alerts:
             raise DatasetError(f"labels.csv row {i}: no alert file for {label.alert_id}")
         out.labels[label.alert_id] = label
+    ctx_path = data_dir / "context.csv"
+    if ctx_path.exists():
+        for i, row in enumerate(_read_csv(ctx_path), start=2):
+            if row["alert_id"] not in out.alerts:
+                raise DatasetError(f"context.csv row {i}: unknown alert {row['alert_id']}")
+            out.contexts[row["alert_id"]] = row["analyst_context"]
     missing = set(out.alerts) - set(out.labels)
     if missing:
         raise DatasetError(f"alerts without a label: {sorted(missing)}")

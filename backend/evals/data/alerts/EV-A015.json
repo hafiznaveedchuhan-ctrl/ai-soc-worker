@@ -1,0 +1,37 @@
+{
+  "id": "EV-A015",
+  "timestamp": "2026-11-11T03:12:40Z",
+  "rule": {
+    "id": "554",
+    "level": 5,
+    "description": "File added to the system.",
+    "groups": [
+      "ossec",
+      "syscheck",
+      "syscheck_entry_added"
+    ],
+    "mitre": {
+      "id": []
+    }
+  },
+  "agent": {
+    "id": "004",
+    "name": "lab-srv02",
+    "ip": "192.168.56.20"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "syscheck_new_entry"
+  },
+  "location": "syscheck",
+  "full_log": "File '/tmp/.x/kworkerd' added. Mode: realtime. Size: 812344. Owner: deploy.",
+  "syscheck": {
+    "path": "/tmp/.x/kworkerd",
+    "event": "added",
+    "size_after": "812344",
+    "uname_after": "deploy",
+    "sha256_after": "264e9f36917bf1f9bb83390c35bc9865b30bde1f4dc433ac2862bc3d7432e0d1"
+  }
+}

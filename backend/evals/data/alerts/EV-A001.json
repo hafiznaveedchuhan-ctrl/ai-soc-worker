@@ -1,0 +1,51 @@
+{
+  "id": "EV-A001",
+  "timestamp": "2026-11-11T02:41:10Z",
+  "rule": {
+    "id": "60204",
+    "level": 10,
+    "description": "Multiple Windows Logon Failures",
+    "groups": [
+      "windows",
+      "authentication_failures"
+    ],
+    "mitre": {
+      "id": [
+        "T1110"
+      ]
+    }
+  },
+  "agent": {
+    "id": "001",
+    "name": "lab-ws01",
+    "ip": "10.10.20.15"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "location": "EventChannel",
+  "data": {
+    "win": {
+      "system": {
+        "eventID": "4625",
+        "computer": "lab-ws01.lab.local",
+        "channel": "Security",
+        "providerName": "Microsoft-Windows-Security-Auditing",
+        "systemTime": "2026-11-11T02:41:10Z"
+      },
+      "eventdata": {
+        "targetUserName": "alice",
+        "targetDomainName": "LAB",
+        "ipAddress": "203.0.113.45",
+        "logonType": "3",
+        "status": "0xc000006d",
+        "subStatus": "0xc000006a",
+        "workstationName": "LAB-KALI"
+      }
+    }
+  },
+  "full_log": "8 failed network logons (4625, Logon Type 3, 0xC000006A) for LAB\\alice from 203.0.113.45 in 4 minutes."
+}

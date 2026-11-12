@@ -1,0 +1,49 @@
+{
+  "id": "EV-A003",
+  "timestamp": "2026-11-11T02:53:40Z",
+  "rule": {
+    "id": "60106",
+    "level": 3,
+    "description": "Windows Logon Success",
+    "groups": [
+      "windows",
+      "authentication_success"
+    ],
+    "mitre": {
+      "id": [
+        "T1078"
+      ]
+    }
+  },
+  "agent": {
+    "id": "001",
+    "name": "lab-ws01",
+    "ip": "10.10.20.15"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "windows_eventchannel"
+  },
+  "location": "EventChannel",
+  "data": {
+    "win": {
+      "system": {
+        "eventID": "4624",
+        "computer": "lab-ws01.lab.local",
+        "channel": "Security",
+        "providerName": "Microsoft-Windows-Security-Auditing",
+        "systemTime": "2026-11-11T02:53:40Z"
+      },
+      "eventdata": {
+        "targetUserName": "alice",
+        "targetDomainName": "LAB",
+        "ipAddress": "203.0.113.45",
+        "logonType": "10",
+        "workstationName": "LAB-KALI"
+      }
+    }
+  },
+  "full_log": "Successful RemoteInteractive logon (Type 10) for LAB\\alice from 203.0.113.45."
+}

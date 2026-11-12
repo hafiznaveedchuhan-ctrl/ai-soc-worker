@@ -1,0 +1,37 @@
+{
+  "id": "EV-A020",
+  "timestamp": "2026-11-11T05:20:31Z",
+  "rule": {
+    "id": "5712",
+    "level": 10,
+    "description": "sshd: brute force trying to get access to the system. Non existent user.",
+    "groups": [
+      "syslog",
+      "sshd",
+      "authentication_failures"
+    ],
+    "mitre": {
+      "id": [
+        "T1110"
+      ]
+    }
+  },
+  "agent": {
+    "id": "010",
+    "name": "lab-web01",
+    "ip": "10.10.40.10"
+  },
+  "manager": {
+    "name": "lab-wazuh"
+  },
+  "decoder": {
+    "name": "sshd"
+  },
+  "location": "/var/log/auth.log",
+  "data": {
+    "srcip": "198.51.100.66",
+    "srcport": "51022",
+    "srcuser": "oracle"
+  },
+  "full_log": "Nov 11 05:20:31 lab-web01 sshd[901]: Invalid user oracle from 198.51.100.66 port 51022"
+}
