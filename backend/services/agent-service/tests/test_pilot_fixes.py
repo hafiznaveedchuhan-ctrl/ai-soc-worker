@@ -258,3 +258,45 @@ async def test_invalid_ask_answer_gets_one_retry_at_the_specialist(tmp_path: Pat
     assert r.status == "ok" and r.text == nir, r.events
     assert len(models["scope"].calls) == 1  # the retry skips the scope classifier
     assert "previous answer was rejected" in str(models["research"].calls[-1].input)
+
+
+# ------------------------------------------------------------------ R3d (pilot 4 findings)
+async def test_triage_reviewer_sees_the_masked_analyst_context(tmp_path: Path) -> None:
+    """T11-22 / EV-A003: the reviewer called the (real) 60204 reference an invention."""
+    models = scripted(triage_steps(good_note()))
+    app, cfg, deps = build_offline(models, tmp_path)
+    ctx_text = "Wazuh rule 60204 fired for the same account from 203.0.113.45 (alert EV-A001)."
+    r = await run_triage(app, cfg, deps, "EV-A003", user_id="u", analyst_context=ctx_text)
+    assert r.status == "ok", r.events
+    seen = " ".join(str(c.input) for c in models["reviewer"].calls)
+    assert "INPUT GIVEN WITH THE ALERT" in seen and "rule 60204" in seen and "Rule 60106" in seen
+    assert "203.0.113.45" not in seen  # masked like everything else the model sees
+
+
+async def test_specialists_must_search_first_then_choice_resets(tmp_path: Path) -> None:
+    """T11-23 / EV-P056: the handbook agent answered without calling search_handbook."""
+    models = scripted(
+        {
+            "scope": [msg(ScopeVerdict(label="ALLOW_KSOR", reason="event meaning"))],
+            "triage": [call("transfer_to_soc_handbook_agent", {}, "h1")],
+            "handbook": [
+                call("search_handbook", {"query": "event 4625 meaning"}, "s1"),
+                msg(
+                    AskAnswer(
+                        answer="Event 4625 is a failed logon.",
+                        scope="ALLOW_KSOR",
+                        citations=["knowledge/windows-events/event-4625"],
+                        confidence=0.8,
+                    )
+                ),
+            ],
+            "reviewer": [msg(ReviewVerdict(ok=True))],
+        }
+    )
+    app, cfg, _ = build_offline(models, tmp_path)
+    r = await run_ask(app, cfg, "What does event 4625 mean?", user_id="u", session_id="s")
+    assert r.status == "ok"
+    first, second = models["handbook"].calls
+    assert first.model_settings.tool_choice == "search_handbook"  # forced on the first turn
+    assert second.model_settings.tool_choice is None  # reset by the SDK → no loop
+    assert app.research.model_settings.tool_choice == "web_search"

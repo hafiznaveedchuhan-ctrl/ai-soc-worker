@@ -126,7 +126,9 @@ def build_agents(
         tools=[tools["search_handbook"]],
         output_type=AskAnswer,
         output_guardrails=[out_guard],
-        model_settings=ModelSettings(),
+        # MUST search first (pilot 4, EV-P056: it "answered" with "Proceeding to retrieve…").
+        # The SDK resets tool_choice after the call (Agent.reset_tool_choice=True) → no loop.
+        model_settings=ModelSettings(tool_choice="search_handbook"),
     )
     research: Agent[WorkerContext] = Agent(
         name="cyber_research_agent",
@@ -143,6 +145,7 @@ def build_agents(
         tools=[tools["web_search"], tools["write_ksor_suggestion"]],
         output_type=AskAnswer,
         output_guardrails=[out_guard],
+        model_settings=ModelSettings(tool_choice="web_search"),  # search first (T11-23)
     )
     ask_entry: Agent[WorkerContext] = Agent(
         name="triage_agent",

@@ -311,6 +311,11 @@ async def run_triage(
             "ip_context": masked.ip_context,
             "analyst_context": mask_text(analyst_context, ctx.mask_map) or None,
         }
+        rule = WazuhAlert.model_validate(raw).rule
+        rule_text = mask_text(rule.description, ctx.mask_map)
+        ctx.review_input = f"Rule {rule.id} (level {masked.rule_level}): {rule_text}" + (
+            f"\nAnalyst context: {payload['analyst_context']}" if payload["analyst_context"] else ""
+        )
         hints = policy_hints(masked.rule_level)
         if hints:
             payload["policy_hints"] = hints
