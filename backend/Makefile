@@ -78,8 +78,9 @@ clean: ## Remove caches and reports
 	rm -rf .pytest_cache .mypy_cache .ruff_cache .hypothesis htmlcov .coverage coverage.xml
 
 # ----- later features (stubs: they say which feature adds them) -----
-eval: ## PAID full eval (40 alerts + 95 probes, real flows): make eval CONFIRM=haan [MAX_USD=1.50]
-	CONFIRM=$(CONFIRM) $(UV) run python -m soc_evals paid --yes-paid --max-usd $(or $(MAX_USD),1.50)
+eval: ## PAID full eval (135 items): make eval CONFIRM=haan [MAX_USD=1.50] [RESUME=<journal stem>]
+	CONFIRM=$(CONFIRM) PYTHONUNBUFFERED=1 $(UV) run python -m soc_evals paid --yes-paid \
+	  --max-usd $(or $(MAX_USD),1.50) $(if $(RESUME),--resume $(RESUME),)
 eval-pilot: ## PAID pilot (2 alerts + 4 probes, ~$$0.02): make eval-pilot CONFIRM=haan
 	CONFIRM=$(CONFIRM) $(UV) run python -m soc_evals paid --yes-paid --max-usd 0.10 \
 	  --ids EV-A003,EV-A034,EV-P001,EV-P021,EV-P056,EV-P086

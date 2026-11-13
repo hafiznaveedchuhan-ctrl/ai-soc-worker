@@ -12,7 +12,7 @@ from pathlib import Path
 from soc_evals import estimate, recordings, review
 from soc_evals.datasets import DatasetError, EvalData, load
 from soc_evals.pipeline import RunOutcome, Selection, run_all, subset
-from soc_evals.predictions import AlertPrediction, ProbePrediction, write_jsonl
+from soc_evals.predictions import AlertPrediction, ProbePrediction, read_jsonl, write_jsonl
 from soc_evals.rate import Rate
 from soc_evals.report import RunInfo, render
 from soc_evals.scoring.common import Failure
@@ -107,9 +107,37 @@ def cmd_paid(args: argparse.Namespace) -> int:
         print(f"refused: {exc}")
         return 1
     print(f"pre-flight: handbook MCP up ({n_tools} tools)")
+    stem = args.resume or f"{datetime.now(UTC):%Y-%m-%d-%H%M}-{_git_sha()}"
+    files = {k: PAID / f"{stem}-{k}.jsonl" for k in ("alerts", "probes")}
+    if args.resume and not files["alerts"].exists() and not files["probes"].exists():
+        print(f"refused: nothing to resume — no recordings/paid/{stem}-*.jsonl")
+        return 1
+    done = (
+        read_jsonl(files["alerts"], AlertPrediction) if files["alerts"].exists() else [],
+        read_jsonl(files["probes"], ProbePrediction) if files["probes"].exists() else [],
+    )
+    PAID.mkdir(parents=True, exist_ok=True)
+    print(f"journal: recordings/paid/{stem}-*.jsonl (resume with --resume {stem})", flush=True)
     pipeline, models = live.build_live(env)
-    outcome = asyncio.run(run_all(data, pipeline, selection, args.max_usd, progress=print))
-    return finish_paid(data, outcome, models, args.max_usd)
+    outcome = asyncio.run(
+        run_all(
+            data,
+            pipeline,
+            selection,
+            args.max_usd,
+            progress=lambda m: print(m, flush=True),
+            done=done,
+            sink=lambda p: append_jsonl(files, p),
+        )
+    )
+    return finish_paid(data, outcome, models, args.max_usd, stem=stem)
+
+
+def append_jsonl(files: dict[str, Path], pred: AlertPrediction | ProbePrediction) -> None:
+    """Journal one prediction the moment it exists (resumable runs)."""
+    kind = "alerts" if isinstance(pred, AlertPrediction) else "probes"
+    with files[kind].open("a", encoding="utf-8") as f:
+        f.write(pred.model_dump_json() + "\n")
 
 
 def finish_paid(
@@ -119,6 +147,7 @@ def finish_paid(
     max_usd: float,
     reports: Path | None = None,
     recordings_dir: Path | None = None,
+    stem: str | None = None,
 ) -> int:
     """Write the JSONL + report for a paid run (FR-11-09). Separate so tests can call it."""
     reports = reports or REPORTS
@@ -126,7 +155,8 @@ def finish_paid(
     recordings_dir.mkdir(parents=True, exist_ok=True)
     today = datetime.now(UTC).date().isoformat()
     sha = _git_sha()
-    stem = f"{today}-{sha}"
+    stem = stem or f"{today}-{sha}"
+    # rewrite the journal in a clean, sorted form (same predictions)
     write_jsonl(recordings_dir / f"{stem}-alerts.jsonl", outcome.alerts)
     write_jsonl(recordings_dir / f"{stem}-probes.jsonl", outcome.probes)
     full = len(data.alerts) + len(data.probes)
@@ -205,6 +235,7 @@ def main(argv: list[str] | None = None) -> int:
     paid.add_argument("--limit", type=int, default=None, help="max items per kind")
     paid.add_argument("--max-usd", type=float, default=1.50, help="run-wide spend cap")
     paid.add_argument("--export-traces", action="store_true")
+    paid.add_argument("--resume", default="", help="journal stem of an interrupted run")
     sub.add_parser("estimate", help="FREE offline cost estimate of a full paid run")
     sub.add_parser("stats", help="dataset composition")
     sub.add_parser("review", help="write the label review sheet")

@@ -112,3 +112,26 @@ async def test_cap_uses_the_ledger_when_predictions_undercount() -> None:
     assert out.stopped_at_cap and len(out.alerts) == 4  # stopped by the ledger, not by $0 usage
     assert out.reported_usd == 0.0 and out.ledger_usd == pytest.approx(1.2)
     assert out.spent_usd == pytest.approx(1.2)
+
+
+# ------------------------------------------------------------------ resumable runs (R5 was lost)
+async def test_sink_gets_every_item_the_moment_it_exists() -> None:
+    seen: list[str] = []
+    await run_all(
+        D,
+        Fake(),
+        Selection(ids=frozenset({"EV-A001", "EV-P001"})),
+        1.5,
+        sink=lambda p: seen.append(getattr(p, "alert_id", "") or getattr(p, "probe_id", "")),
+    )
+    assert seen == ["EV-A001", "EV-P001"]
+
+
+async def test_resume_skips_done_items_and_counts_their_cost() -> None:
+    prev = AlertPrediction(alert_id="EV-A001", usage=usage(0.40))
+    f = Fake(cost=0.30)
+    out = await run_all(D, f, Selection(only="alerts", limit=5), max_usd=1.0, done=([prev], []))
+    assert "EV-A001" not in [i for i, _ in f.seen]  # not paid for twice
+    assert out.alerts[0] is prev  # kept in the outcome and the report
+    # $0.40 already spent + 2 x $0.30 = $1.00 → cap reached after 2 new items
+    assert out.stopped_at_cap and len(out.alerts) == 3
