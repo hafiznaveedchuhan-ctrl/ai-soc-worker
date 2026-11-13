@@ -154,7 +154,11 @@ def build_live(env_file: Path | None) -> tuple[AgentPipeline, str]:  # pragma: n
         ksor=McpKsor(s.handbook_mcp_url),
         web=web,
     )
-    app = build_agents(s.model_for, deps, s.suggestions_dir)
+    # Eval runs write KSOR-suggestion drafts to a throwaway folder, never into backend/suggestions/
+    # (R5/P1/P2 left ~37 eval drafts there, 2026-11-13).
+    import tempfile
+
+    app = build_agents(s.model_for, deps, Path(tempfile.mkdtemp(prefix="soc-eval-suggestions-")))
     cfg = FlowConfig(
         prices=s.prices,
         run_budget_usd=s.run_budget_usd,
