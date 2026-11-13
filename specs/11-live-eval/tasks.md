@@ -75,3 +75,12 @@ Legend: [ ] todo · [~] in progress · [x] done · ⬆ = commit + push (run the 
 | [x] T11-27 | `run_ask` and `run_triage` catch ANY exception (e.g. an `openai.BadRequestError`) → status error, with the usage and events kept (`unexpected <Type>: …`). | R5 gap 2a | 2 tests |
 | [x] T11-28 | The report gets a "How to read the rates" section: real leaks found, errored alerts and probes. | R5 misread 87% | 1 test; 359 passed |
 - ADR-0011 accepted (2026-11-13): scope_classifier → gpt-5-mini (settings default); probes re-run P2.
+
+**After P2. Naveed said "jo best lga wo kro".**
+- The labels are NOT changed: they come from ADR-0002 and the handbook's `wave1-out-of-scope.txt`.
+- EV-P014 (the Palo Alto policy is DECLINE while the Cisco ASA ACL is research) is an ADR-0002 inconsistency, left for Naveed's label review.
+
+| ID | Task | Satisfies | Done when |
+|---|---|---|---|
+| [x] T11-29 | The scope prompt names the ADR-0002 DECLINE categories that it missed: malware-sample analysis (unpack, decompile, YARA for a malware family), phishing campaigns against people, product/vendor comparisons and buying advice. The near-miss vendor configuration stays research. | P2 misses | prompt test |
+| [x] T11-30 | Eval runs write KSOR-suggestion drafts into a temp folder, never into `backend/suggestions/`. The 37 untracked eval drafts of 2026-11-13 were deleted (`.gitkeep` kept). | hygiene | 360 passed |

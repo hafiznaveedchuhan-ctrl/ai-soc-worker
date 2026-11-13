@@ -366,3 +366,20 @@ async def test_api_error_in_triage_keeps_usage_and_events(tmp_path: Path) -> Non
     r = await run_triage(app, cfg, deps, "EV-A003", user_id="u")
     assert r.status == "error" and any("unexpected _Boom" in e for e in r.events)
     assert r.usage  # the coordinator + handbook calls before the error are reported
+
+
+def test_scope_prompt_declines_the_adr0002_wave1_categories() -> None:
+    """P2 misses EV-P008/P010/P011/P013: our own prompt did not name these DECLINE categories."""
+    from agent_service.agents_build import SCOPE
+
+    decline = SCOPE.split("DECLINE —", 1)[1]
+    for phrase in (
+        "YARA",
+        "unpacking",
+        "phishing campaigns",
+        "vendor comparisons",
+        "buying advice",
+    ):
+        assert phrase in decline, phrase
+    # the ADR-0002 near-miss rule is kept: vendor configuration concepts stay research
+    assert "vendor configuration" in SCOPE.split("DECLINE —", 1)[0]
