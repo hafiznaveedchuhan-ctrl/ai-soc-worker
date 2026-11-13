@@ -34,3 +34,6 @@ htmlcov/
 # local LLM spend ledger + agent sessions (feature 05/11) — local state, never committed
 backend/.agent-ledger.json
 backend/.agent-sessions.sqlite
+
+# Naveed's OpenAI billing screenshots + usage CSV (account/project/key ids) — private, never committed
+openai expense/
