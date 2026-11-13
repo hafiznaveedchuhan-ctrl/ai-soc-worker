@@ -1,5 +1,5 @@
 # ADR-0011 — scope_classifier upgraded to gpt-5-mini
-- Status: **Proposed** (waiting for Naveed) · Feature 11 · Constitution VI.2 (one agent, after the evals fail)
+- Status: **Accepted** (Naveed "approved" + "haan", 2026-11-13) · Feature 11 · Constitution VI.2 (one agent, after the evals fail)
 
 ## Context
 The R5 baseline and the P1 re-run used gpt-5-nano for every agent (ADR-0003). On the DECLINE set the scope result was 21/30 = 70%; the target is ≥ 90%.
@@ -7,7 +7,7 @@ The R5 baseline and the P1 re-run used gpt-5-nano for every agent (ADR-0003). On
 - The code-level blocking rules work: EV-P001 was declined with 0 calls.
 
 ## Decision
-- Set `AGENT_MODEL_SCOPE=gpt-5-mini`, through the existing per-agent routing.
+- `AgentSettings.model_scope` defaults to `gpt-5-mini`, using the existing per-agent routing. It can still be overridden with `AGENT_MODEL_SCOPE`.
 - All other agents stay on gpt-5-nano.
 - Re-run the 95 probes with a cap of $0.60.
 

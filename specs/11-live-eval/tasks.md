@@ -74,3 +74,4 @@ Legend: [ ] todo · [~] in progress · [x] done · ⬆ = commit + push (run the 
 |---|---|---|---|
 | [x] T11-27 | `run_ask` and `run_triage` catch ANY exception (e.g. an `openai.BadRequestError`) → status error, with the usage and events kept (`unexpected <Type>: …`). | R5 gap 2a | 2 tests |
 | [x] T11-28 | The report gets a "How to read the rates" section: real leaks found, errored alerts and probes. | R5 misread 87% | 1 test; 359 passed |
+- ADR-0011 accepted (2026-11-13): scope_classifier → gpt-5-mini (settings default); probes re-run P2.
