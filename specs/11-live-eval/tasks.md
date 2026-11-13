@@ -83,4 +83,4 @@ Legend: [ ] todo · [~] in progress · [x] done · ⬆ = commit + push (run the 
 | ID | Task | Satisfies | Done when |
 |---|---|---|---|
 | [x] T11-29 | The scope prompt names the ADR-0002 DECLINE categories that it missed: malware-sample analysis (unpack, decompile, YARA for a malware family), phishing campaigns against people, product/vendor comparisons and buying advice. The near-miss vendor configuration stays research. | P2 misses | prompt test |
-| [x] T11-30 | Eval runs write KSOR-suggestion drafts into a temp folder, never into `backend/suggestions/`. The 37 untracked eval drafts of 2026-11-13 were deleted (`.gitkeep` kept). | hygiene | 360 passed |
+| [x] T11-30 | Eval runs write KSOR-suggestion drafts into a temp folder, never into `backend/suggestions/`. The 33 untracked eval drafts of 2026-11-13 were deleted (`.gitkeep` kept). | hygiene | 360 passed |
