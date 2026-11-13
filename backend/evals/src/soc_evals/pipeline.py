@@ -60,11 +60,32 @@ async def run_all(
     selection: Selection,
     max_usd: float,
     progress: Callable[[str], None] = lambda _: None,
+    *,
+    done: tuple[list[AlertPrediction], list[ProbePrediction]] | None = None,
+    sink: Callable[[AlertPrediction | ProbePrediction], None] | None = None,
 ) -> RunOutcome:
-    """Run the selected items one by one. Stops (keeping what it has) once spend reaches max_usd."""
+    """Run the selected items one by one. Stops (keeping what it has) once spend reaches max_usd.
+
+    `done` = predictions of an interrupted run (--resume): those items are not run again, and
+    their cost counts toward the cap. `sink` is called after EVERY item, so the caller can append
+    it to disk at once — an interrupted run keeps everything it paid for (R5 lost $0.017 of work
+    when the session ended, 2026-11-12)."""
+    prev_a, prev_p = done or ([], [])
+    have_a = {x.alert_id for x in prev_a}
+    have_p = {x.probe_id for x in prev_p}
     alert_ids = selection.pick(data.alerts, "alerts")
     probe_ids = selection.pick(data.probes, "probes")
-    out = RunOutcome(planned=len(alert_ids) + len(probe_ids))
+    out = RunOutcome(
+        alerts=[x for x in prev_a if x.alert_id in alert_ids],
+        probes=[x for x in prev_p if x.probe_id in probe_ids],
+        planned=len(alert_ids) + len(probe_ids),
+    )
+    prior = sum(_cost(x) for x in out.alerts) + sum(_cost(x) for x in out.probes)
+    out.reported_usd = out.spent_usd = prior
+    if out.ran:
+        progress(f"resume: {out.ran} items already done (${prior:.4f}), skipping them")
+    alert_ids = [i for i in alert_ids if i not in have_a]
+    probe_ids = [i for i in probe_ids if i not in have_p]
     ledger = getattr(pipeline, "ledger_total", None)  # optional: AgentPipeline has one
     start = ledger() if ledger else None
 
@@ -73,8 +94,10 @@ async def run_all(
         # prediction lost its usage (pilot 2026-11-12, F1). The cap uses the larger number.
         out.reported_usd += _cost(pred)
         if ledger and start is not None:
-            out.ledger_usd = max(0.0, (ledger() or 0.0) - start)
+            out.ledger_usd = prior + max(0.0, (ledger() or 0.0) - start)
         out.spent_usd = max(out.reported_usd, out.ledger_usd or 0.0)
+        if sink is not None:
+            sink(pred)
 
     def over_cap() -> bool:
         if out.spent_usd >= max_usd:

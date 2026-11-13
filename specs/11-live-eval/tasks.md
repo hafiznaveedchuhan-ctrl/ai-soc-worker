@@ -52,3 +52,9 @@ Legend: [ ] todo · [~] in progress · [x] done · ⬆ = commit + push (run the 
 |---|---|---|---|
 | [x] T11-22 | The TriageNote LLM reviewer also gets the masked rule facts and the analyst context (`ctx.review_input`). | EV-A003 | `test_triage_reviewer_sees_the_masked_analyst_context` |
 | [x] T11-23 | The handbook and research agents must call their search tool first (`tool_choice`), and the SDK resets it afterwards. Checked: `openai_responses.py:1833` maps a tool name to `{"type": "function", "name": …}`; `tool_execution.py:562` resets it. | EV-P056 | `test_specialists_must_search_first_then_choice_resets` |
+
+**Found in session 3: R5 was lost when the Claude session ended.** About $0.017 was spent, and no prediction was saved, because the journal was written only at the end. Naveed had already said "do your part" and "continue"; this is a free robustness fix.
+
+| ID | Task | Satisfies | Done when |
+|---|---|---|---|
+| [x] T11-24 | Resumable paid runs: `run_all(sink=…)` appends each prediction to `recordings/paid/<date-HHMM-sha>-*.jsonl` at once. `--resume <stem>` / `make eval RESUME=<stem>` skips the done items, and their cost counts toward the cap. Output is unbuffered. The run is started with `setsid nohup`, so it survives the session. | R5 robustness | 4 new tests; `make check` 354 passed |

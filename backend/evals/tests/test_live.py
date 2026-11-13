@@ -247,7 +247,9 @@ async def test_preflight_up_and_down() -> None:
 
 # ------------------------------------------------------------------ CLI guards (FR-11-01)
 def _args(**kw: Any) -> argparse.Namespace:
-    base = dict(yes_paid=True, only="all", ids="", limit=None, max_usd=1.5, export_traces=False)
+    base = dict(
+        yes_paid=True, only="all", ids="", limit=None, max_usd=1.5, export_traces=False, resume=""
+    )
     base.update(kw)
     return argparse.Namespace(**base)
 
@@ -382,3 +384,50 @@ def subset_of(data: EvalData, out: RunOutcome) -> EvalData:
 def test_safe_events_withholds_raw_data() -> None:
     ev = live.safe_events(["review ok", "problem with 203.0.113.45", "token <IP-1> is fine"])
     assert ev == ["review ok", "[event withheld: unmasked data]", "token <IP-1> is fine"]
+
+
+def test_paid_resume_continues_an_interrupted_journal(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """An interrupted run's journal is read back; done items are not run (or paid) again."""
+    models = scripted(alert_script())
+    app, cfg, deps = build_offline(models, tmp_path / "sugg")
+
+    async def up(_target: Any, timeout_s: float = 5) -> int:
+        return 3
+
+    paid = tmp_path / "paid"
+    paid.mkdir()
+    stem = "2026-11-12-0900-abc1234"
+    done = AlertPrediction(alert_id="EV-A001", error="blocked: x")
+    (paid / f"{stem}-alerts.jsonl").write_text(done.model_dump_json() + "\n", encoding="utf-8")
+    monkeypatch.setenv("CONFIRM", "haan")
+    monkeypatch.setattr(cli, "ENV_FILE", tmp_path / "missing.env")
+    monkeypatch.setattr(live, "handbook_url", lambda _env: "unused")
+    monkeypatch.setattr(live, "preflight", up)
+    monkeypatch.setattr(
+        live, "build_live", lambda _env: (live.AgentPipeline(app, cfg, deps), "scripted")
+    )
+    monkeypatch.setattr(cli, "REPORTS", tmp_path)
+    monkeypatch.setattr(cli, "PAID", paid)
+    cli.cmd_paid(_args(ids="EV-A001,EV-A003", resume=stem))
+    out = capsys.readouterr().out
+    assert "resume: 1 items already done" in out
+    preds = read_jsonl(paid / f"{stem}-alerts.jsonl", AlertPrediction)
+    assert [p.alert_id for p in preds] == ["EV-A001", "EV-A003"]  # old kept, new appended
+    assert preds[0].error == "blocked: x"
+
+
+def test_paid_resume_refuses_an_unknown_stem(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _forbid_paid(monkeypatch, tmp_path)
+
+    async def up(_target: Any, timeout_s: float = 5) -> int:
+        return 3
+
+    monkeypatch.setattr(live, "preflight", up)
+    monkeypatch.setattr(cli, "PAID", tmp_path / "paid")
+    monkeypatch.setenv("CONFIRM", "haan")
+    assert cli.cmd_paid(_args(resume="nope")) == 1
+    assert "nothing to resume" in capsys.readouterr().out
