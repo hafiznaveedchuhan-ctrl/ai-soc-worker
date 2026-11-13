@@ -59,6 +59,12 @@ def rule_problems(text: str, model: type[BaseModel]) -> list[str]:
     return []
 
 
+def _unexpected(exc: Exception) -> str:
+    """One masked-safe breadcrumb for an unexpected error (type + the first part of the message;
+    API error messages name parameters, not prompt content)."""
+    return f"unexpected {type(exc).__name__}: {exc}"[:240]
+
+
 def policy_hints(rule_level: int | None) -> list[str]:
     """Code-computed escalation-policy facts the model must not miss (pilot: EV-A034)."""
     if rule_level is not None and rule_level >= 12:
@@ -232,7 +238,7 @@ async def run_ask(
                 )
                 answer = r.final_output_as(AskAnswer)
                 return _done(ctx, t.trace_id, "ok", answer=answer, text=answer.answer)
-            except (OutputGuardrailTripwireTriggered, AgentsException) as exc:
+            except Exception as exc:  # guardrail, agent or API error on the retry
                 ctx.events.append(f"retry failed {type(exc).__name__}: {ctx.output_problems}")
                 ans = _fallback_answer(
                     ctx, "The assistant produced an invalid answer. " + SAFE_FALLBACK
@@ -243,6 +249,11 @@ async def run_ask(
             ans = _fallback_answer(
                 ctx, "The assistant produced an invalid answer. " + SAFE_FALLBACK
             )
+            return _done(ctx, t.trace_id, "error", answer=ans, text=ans.answer)
+        except Exception as exc:  # e.g. openai.BadRequestError (R5: 43 probes left
+            # no trace because a 400 escaped the flow). Keep usage + events; never crash the caller.
+            ctx.events.append(_unexpected(exc))
+            ans = _fallback_answer(ctx, "The assistant failed. " + SAFE_FALLBACK)
             return _done(ctx, t.trace_id, "error", answer=ans, text=ans.answer)
 
 
@@ -399,4 +410,7 @@ async def run_triage(
             return _done(ctx, t.trace_id, "budget", text=f"Stopped: {exc}. " + SAFE_FALLBACK)
         except AgentsException as exc:  # keep the usage already spent (R3 F1)
             ctx.events.append(f"agent error {type(exc).__name__}")
+            return _done(ctx, t.trace_id, "error", text="Agent error. " + SAFE_FALLBACK)
+        except Exception as exc:  # API/transport errors keep usage + events too
+            ctx.events.append(_unexpected(exc))
             return _done(ctx, t.trace_id, "error", text="Agent error. " + SAFE_FALLBACK)

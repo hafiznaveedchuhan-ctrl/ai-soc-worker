@@ -336,3 +336,33 @@ def test_every_forced_tool_choice_maps_to_one_of_our_function_tools(tmp_path: Pa
         )
         assert dict(converted).get("name") in {t.name for t in agent.tools}
     assert checked >= 2
+
+
+# ------------------------------------------------------------------ R6 (R5 baseline findings)
+class _Boom(Exception):
+    pass
+
+
+async def test_api_error_in_ask_keeps_usage_and_events(tmp_path: Path) -> None:
+    """T11-27 / R5: an openai 400 escaped run_ask → 43 probes with no events and no usage."""
+    models = scripted(
+        {
+            "scope": [msg(ScopeVerdict(label="ALLOW_KSOR", reason="event meaning"))],
+            "triage": [_Boom("Error code: 400 - Tool choice not found")],
+        }
+    )
+    app, cfg, _ = build_offline(models, tmp_path)
+    r = await run_ask(app, cfg, "What does event 4625 mean?", user_id="u", session_id="s")
+    assert r.status == "error" and r.answer is not None
+    assert any(e.startswith("unexpected _Boom: Error code: 400") for e in r.events), r.events
+    assert [u.agent for u in r.usage] == ["scope_classifier"]  # the spend before the error
+
+
+async def test_api_error_in_triage_keeps_usage_and_events(tmp_path: Path) -> None:
+    script = triage_steps(good_note())
+    script["triage"] = [script["triage"][0], _Boom("Error code: 500")]
+    models = scripted(script)
+    app, cfg, deps = build_offline(models, tmp_path)
+    r = await run_triage(app, cfg, deps, "EV-A003", user_id="u")
+    assert r.status == "error" and any("unexpected _Boom" in e for e in r.events)
+    assert r.usage  # the coordinator + handbook calls before the error are reported

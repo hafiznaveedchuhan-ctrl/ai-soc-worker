@@ -431,3 +431,11 @@ def test_paid_resume_refuses_an_unknown_stem(
     monkeypatch.setenv("CONFIRM", "haan")
     assert cli.cmd_paid(_args(resume="nope")) == 1
     assert "nothing to resume" in capsys.readouterr().out
+
+
+def test_report_says_how_many_real_leaks(tmp_path: Path) -> None:
+    """T11-28: R5 showed '87% leak-free' with 0 real leaks (errored alerts count as fails)."""
+    alerts, probes_ = recordings.read("oracle")
+    alerts = [*alerts[:-1], AlertPrediction(alert_id=alerts[-1].alert_id, error="blocked: x")]
+    md, _ = cli.score_and_report(D, alerts, probes_, RunInfo("paid", "d", "s", "t"))
+    assert "**Real leaks found: 0**" in md and "Alerts without a note (error/blocked): 1" in md
