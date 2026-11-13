@@ -85,4 +85,5 @@ def test_blank_model_line_in_env_means_default(tmp_path: Path) -> None:
     env = tmp_path / "x.env"
     env.write_text("AGENT_MODEL_DEFAULT=\nAGENT_MODEL_SCOPE=\n", encoding="utf-8")
     s = AgentSettings(_env_file=env)
-    assert s.model_for("triage") == s.model_for("scope") == "gpt-5-nano"
+    assert s.model_for("triage") == "gpt-5-nano"
+    assert s.model_for("scope") == "gpt-5-mini"  # ADR-0011: blank line = the (upgraded) default

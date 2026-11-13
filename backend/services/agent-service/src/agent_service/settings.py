@@ -24,7 +24,9 @@ class AgentSettings(BaseServiceSettings):
     model_triage: str | None = None
     model_handbook: str | None = None
     model_research: str | None = None
-    model_scope: str | None = None
+    # ADR-0011 (2026-11-13): the scope classifier on gpt-5-nano let 9/30 out-of-scope questions
+    # through (R5+P1). ONE agent upgraded per constitution VI.2; the rest stay on model_default.
+    model_scope: str | None = "gpt-5-mini"
     model_reviewer: str | None = None
     prices: dict[str, tuple[float, float]] = Field(default_factory=lambda: dict(DEFAULT_PRICES))
 
