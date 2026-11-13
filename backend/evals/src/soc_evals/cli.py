@@ -191,8 +191,9 @@ def finish_paid(
         )
     info = RunInfo("paid", today, sha, f"recordings/paid/{stem}-*.jsonl", models, note)
     md, all_pass = score_and_report(subset(data, outcome), outcome.alerts, outcome.probes, info)
+    # one report per journal stem: partial runs on the same day no longer overwrite each other
     name = "paid-report" if outcome.ran == full else "paid-pilot-report"
-    path = reports / f"{today}-{name}.md"
+    path = reports / f"{stem}-{name}.md"
     path.write_text(md, encoding="utf-8")
     print(f"{note}\nreport: {path}")
     print("targets:", "all PASS" if all_pass else "SOME FAIL (see the report)")
