@@ -67,3 +67,10 @@ Legend: [ ] todo · [~] in progress · [x] done · ⬆ = commit + push (run the 
 |---|---|---|---|
 | [x] T11-25 | `handbook.as_tool(..., hooks=nested_hooks)` and the same for research, so the sub-agent calls reach the ledger, the per-item budget and the run cap. `openai expense/` is gitignored. | cost guard accuracy | `test_as_tool_sub_agent_calls_are_priced` (fails without the fix); 355 passed |
 | [x] T11-26 | R5 bug (my T11-23 mistake): `tool_choice="web_search"` is a name the SDK reserves for the HOSTED tool → HTTP 400 for every research probe. Research now uses `tool_choice="required"`. A new test runs the SDK's real `Converter.convert_tool_choice` on every agent (it FAILS on the old code). | R5 400s | 356 passed |
+
+**R6 plan (`R6-plan.txt`), approved by Naveed on 2026-11-13. Free part:**
+
+| ID | Task | Satisfies | Done when |
+|---|---|---|---|
+| [x] T11-27 | `run_ask` and `run_triage` catch ANY exception (e.g. an `openai.BadRequestError`) → status error, with the usage and events kept (`unexpected <Type>: …`). | R5 gap 2a | 2 tests |
+| [x] T11-28 | The report gets a "How to read the rates" section: real leaks found, errored alerts and probes. | R5 misread 87% | 1 test; 359 passed |

@@ -49,8 +49,26 @@ def score_and_report(
     s = score_scope(data.probes, {p.probe_id: p for p in probes})
     targets = evaluate(t, s)
     md = render(info, data, t, s, targets, cost_latency(alerts), cost_latency(probes))
+    md += reading_note(t.failures + s.failures, alerts, probes)
     return md + diagnostics(t.failures + s.failures, [*alerts, *probes]), all(
         r.passed for r in targets
+    )
+
+
+def reading_note(
+    failures: list[Failure], alerts: list[AlertPrediction], probes: list[ProbePrediction]
+) -> str:
+    """The conservative rates count an errored item as a fail. Say what that means (R5 read
+    "87% leak-free" while real leaks were 0)."""
+    leaks = sum(1 for f in failures if f.check == "leak")
+    err_a = sum(1 for a in alerts if a.note is None)
+    err_p = sum(1 for p in probes if p.error)
+    return (
+        "\n## How to read the rates\n"
+        f"- **Real leaks found: {leaks}** "
+        "(raw IP/user/host/email in an output shown to the analyst).\n"
+        f"- Alerts without a note (error/blocked): {err_a}. Probes with an error: {err_p}. "
+        "They count as FAIL in the leak / MITRE / cite rates (conservative), even with no leak.\n"
     )
 
 
