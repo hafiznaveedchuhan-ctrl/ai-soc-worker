@@ -66,3 +66,4 @@ Legend: [ ] todo · [~] in progress · [x] done · ⬆ = commit + push (run the 
 | ID | Task | Satisfies | Done when |
 |---|---|---|---|
 | [x] T11-25 | `handbook.as_tool(..., hooks=nested_hooks)` and the same for research, so the sub-agent calls reach the ledger, the per-item budget and the run cap. `openai expense/` is gitignored. | cost guard accuracy | `test_as_tool_sub_agent_calls_are_priced` (fails without the fix); 355 passed |
+| [x] T11-26 | R5 bug (my T11-23 mistake): `tool_choice="web_search"` is a name the SDK reserves for the HOSTED tool → HTTP 400 for every research probe. Research now uses `tool_choice="required"`. A new test runs the SDK's real `Converter.convert_tool_choice` on every agent (it FAILS on the old code). | R5 400s | 356 passed |

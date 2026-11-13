@@ -299,7 +299,7 @@ async def test_specialists_must_search_first_then_choice_resets(tmp_path: Path) 
     first, second = models["handbook"].calls
     assert first.model_settings.tool_choice == "search_handbook"  # forced on the first turn
     assert second.model_settings.tool_choice is None  # reset by the SDK → no loop
-    assert app.research.model_settings.tool_choice == "web_search"
+    assert app.research.model_settings.tool_choice == "required"
 
 
 async def test_as_tool_sub_agent_calls_are_priced(tmp_path: Path) -> None:
@@ -312,3 +312,27 @@ async def test_as_tool_sub_agent_calls_are_priced(tmp_path: Path) -> None:
     agents = [u.agent for u in r.usage]
     assert "soc_handbook_agent" in agents  # 2 sub-agent turns (search + answer)
     assert agents.count("soc_handbook_agent") == len(models["handbook"].calls)
+
+
+def test_every_forced_tool_choice_maps_to_one_of_our_function_tools(tmp_path: Path) -> None:
+    """R5 (2026-11-13): tool_choice="web_search" became the HOSTED web_search tool in the real
+    request → 400 "Tool choice 'web_search_preview' not found". ScriptedModel never converts, so this
+    runs the SDK's real Responses converter on every agent's tool_choice."""
+    from agents.models.openai_responses import Converter
+
+    app, _, _ = build_offline(scripted({}), tmp_path)
+    agents = [app.ask_entry, app.triage_entry, app.handbook, app.research, app.scope_classifier]
+    checked = 0
+    for agent in agents:
+        choice = agent.model_settings.tool_choice
+        if choice is None:
+            continue
+        checked += 1
+        converted = Converter.convert_tool_choice(choice, tools=agent.tools)
+        if converted in ("required", "auto", "none"):
+            continue
+        assert isinstance(converted, dict) and converted.get("type") == "function", (
+            f"{agent.name}: tool_choice {choice!r} became {converted!r} (a hosted tool?)"
+        )
+        assert dict(converted).get("name") in {t.name for t in agent.tools}
+    assert checked >= 2

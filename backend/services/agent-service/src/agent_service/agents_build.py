@@ -145,7 +145,10 @@ def build_agents(
         tools=[tools["web_search"], tools["write_ksor_suggestion"]],
         output_type=AskAnswer,
         output_guardrails=[out_guard],
-        model_settings=ModelSettings(tool_choice="web_search"),  # search first (T11-23)
+        # search first (T11-23). NOT tool_choice="web_search": the SDK reserves that name for the
+        # hosted OpenAI tool (openai_responses.Converter → web_search) → HTTP 400 in R5.
+        # "required" forces a call to one of OUR tools; the SDK resets it after the call.
+        model_settings=ModelSettings(tool_choice="required"),
     )
     ask_entry: Agent[WorkerContext] = Agent(
         name="triage_agent",
