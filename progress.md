@@ -4,69 +4,70 @@ Protocol: `CLAUDE.md` §1. Plan of record: `specs/00-final-plan.txt` (v2). Const
 **Append-only:** add a new session block at the bottom; never delete or edit an old (closed) block.
 Only the "READ ME FIRST" box below is rewritten in place, every session.
 
-> ## READ ME FIRST — HANDOFF after SESSION 1 (rewritten 2026-11-12 ~13:45Z; next = SESSION 2)
+> ## READ ME FIRST — HANDOFF after SESSIONS 2–3 (rewritten 2026-11-13; next = SESSION 4)
 >
 > ### A. One-line status
-> **All coding for features 01–10 is DONE and merged into `main`** (PRs #1–#11; #12 = this docs update). 307 tests pass, coverage 93%,
-> CI is green including the 4 Docker image builds and the Trivy scans. **Not done yet: everything that costs money or needs Naveed's accounts**
-> (live LLM runs, the paid eval, Neon migration, Auth0, GHCR push, Docker on this PC) and **Naveed's label review**.
+> **Features 01–11 are coded and merged** (PRs #1–#25). 354 tests pass, coverage ≈ 93.6%, CI green.
+> **Feature 11 (live eval)** wires `soc_evals paid` to the real flows. The paid run is safe:
+> - two keys are needed (`--yes-paid` + `CONFIRM=haan`);
+> - the run cap is $1.50, the per-item budget $0.05, the ledger $9;
+> - the journal is written per item and `--resume` continues an interrupted run;
+> - every failure carries its reason in the Diagnostics.
 >
-> ### B. How to START session 2 (Claude: do exactly this)
-> 1. Read this box, then the bottom block "Session 1 — FINAL HANDOFF".
-> 2. `cd ~/ai-soc/soc-worker && git fetch && git checkout main && git pull`, then `git status` and `git log --oneline -3`. Expected head: the merge of PR #12 (or #11 `f907512`).
-> 3. `cd backend && uv sync --all-packages && make check`. Expected: `307 passed`, coverage ≈ 93%, ruff and mypy clean.
-> 4. Tell Naveed in 3 Roman-Urdu lines: (1) the code is complete and offline-tested; (2) what waits on him (list D); (3) the next step = the first LIVE LLM test.
-> 5. New work → a NEW branch from main (`feat/11-live-eval` or similar). Before EVERY push: `gh pr list --head <branch> --state merged` must be empty.
+> Four paid pilots plus one diagnostic run found and fixed 12 live-only bugs (T11-09…24).
+> **R5 (the full 135-item run, gpt-5-nano) was started on 2026-11-13 05:50Z** (Naveed "haan"), detached:
+> - journal `backend/evals/recordings/paid/2026-11-13-0550-3ad7c88-*.jsonl`;
+> - log `/tmp/claude-1000/-home-naveed-ai-soc-soc-worker/r5-run.log`.
+>
+> Ledger before R5: $0.0765.
+>
+> ### B. How to START session 4 (Claude: do exactly this)
+> 1. Read this box, then the bottom block.
+> 2. `git fetch && git checkout main && git pull`, then `git status` and `git log --oneline -3`.
+> 3. **R5 check:**
+>    - is it still running? `pgrep -f 'soc_evals paid'`;
+>    - how far did it get? `wc -l backend/evals/recordings/paid/2026-11-13-0550-3ad7c88-*.jsonl`;
+>    - ledger: `cat backend/.agent-ledger.json`.
+>    
+>    If it stopped before 135 items, ask Naveed for "haan", then run `cd backend && make eval CONFIRM=haan RESUME=2026-11-13-0550-3ad7c88` detached (`setsid nohup … &`).
+>    Do NOT switch branches in this folder while a run is going; use `git worktree` for docs.
+> 4. `cd backend && uv sync --all-packages && make check` → `354 passed`.
+> 5. Tell Naveed 3 Roman-Urdu lines: where we are / what waits on him (D) / the next step (C).
+> 6. **Push guard** (ALWAYS). Push AND `gh pr create` go INSIDE the if-block:
+>    `M="$(gh pr list --head "$B" --state merged)"; if [ -z "$M" ]; then git push … && gh pr create …; fi`.
+>    `gh` exits 0 even when it finds a merged PR. Naveed merges within minutes, so expect it, and cherry-pick onto a new branch from origin/main.
 >
 > ### C. Remaining work (in order)
-> | # | Task | Who | Needs |
+> | # | Task | Who | State |
 > |---|---|---|---|
-> | R1 | First LIVE /ask: T1 `cd ~/ai-soc/handbook && npm run serve`; T2 `cd backend && make demo-ask LIVE=1 CONFIRM=haan Q="What does event 4625 mean?"` | Naveed runs it, Claude reads the result | "haan" + OPENAI_API_KEY in .env (already there) |
-> | R2 | First LIVE /triage: `make demo-triage LIVE=1 CONFIRM=haan ID=EV-A003` (it asks y/N for the MOCK ticket) | Naveed + Claude | "haan" |
-> | R3 | Fix whatever the live runs show (small-model output-format problems, prompts, max_turns) | Claude | — |
-> | R4 | **Build `soc_evals paid`** (still a stub): run the 40 alerts + 95 probes through `agent_service.flows`, write the predictions JSONL, score, `reports/<date>-paid-report.md`. Show a cost ESTIMATE first (expected < $1 with gpt-5-nano) | Claude | — |
-> | R5 | Run the paid eval | Naveed's "haan" | the label review should come first |
-> | R6 | If targets fail: fix, or upgrade ONE agent via a new ADR (constitution VI.2) | Claude + Naveed | evals |
-> | R7 | Neon: `make db-upgrade CONFIRM=haan` (creates the 8 tables in `soc_worker`) | Naveed's "haan" | SOC_DB_URL in .env (already there) |
-> | R8 | Docker: enable Docker Desktop → Settings → Resources → WSL integration for this distro; then `make up` → `make demo-up` → `make down` | Naveed | — |
-> | R9 | Auth0 tenant per `specs/08-api-gateway/AUTH0-SETUP.md`, then `AUTH_MODE=auth0` | Naveed | free account |
-> | R10 | First GHCR release: GitHub → Actions → release → Run workflow → confirm `haan` | Naveed | "haan" |
-> | R11 | Final: `specs/00-final-plan.txt` "definition of done" check, the report, CAREER-MAP review | Claude + Naveed | after R5 |
-> | Later | Phase 4+ (not this project): the chat widget + login in ../handbook, an analyst dashboard, live Wazuh (Phase 1 B/C), Azure deploy (Phase 8) | — | — |
+> | R1/R2 | live /ask and /triage | — | **done** (through the pilots) |
+> | R3 | fix the live problems | Claude | **done** (T11-09…24) |
+> | R4 | `soc_evals paid` | Claude | **done** (feature 11) |
+> | R5 | full paid run (135 items) | Claude runs, Naveed said "haan" | **running / check §B3** |
+> | R6 | analyse R5 → fix, or ADR-0011 to upgrade ONE agent (e.g. note_reviewer or triage → gpt-5-mini) | Claude + Naveed | after R5 |
+> | R7 | Neon `make db-upgrade CONFIRM=haan` | Naveed "haan" | open |
+> | R8 | Docker Desktop WSL integration → `make up` | Naveed | open |
+> | R9 | Auth0 | Naveed | open (optional) |
+> | R10 | first GHCR release | Naveed "haan" | open |
+> | R11 | DoD check | Claude + Naveed | `specs/DOD-CHECK.md` (5/9 ✅) |
 >
-> ### D. Waiting on Naveed (manual)
-> 1. **Rotate** the OpenAI and Anthropic keys that were pasted in an earlier chat. Set a **$10 monthly limit** in the OpenAI dashboard.
-> 2. **Label review:** `backend/evals/review/labels-review.md` (40 alerts + 95 probes; 0 verified). The NOTE items are in `specs/02-evals-first/VERIFY.md` §4.
-> 3. Free keys into `backend/.env`: `ABUSEIPDB_API_KEY` (abuseipdb.com) and `WEB_SEARCH_API_KEY` (Tavily, app.tavily.com). Without them, enrichment says "not configured" and research says "web search unavailable".
-> 4. Say **"haan"** for each paid or external step: R1, R2, R5, R7, R10.
+> ### D. Waiting on Naveed
+> 1. Rotate the OpenAI and Anthropic keys; set the $10 limit (Naveed says there is credit).
+> 2. Label review: `backend/evals/review/labels-review.md` (0/40 + 0/95).
+> 3. Verify VERIFY.md 02–11 (only 01 is verified).
+> 4. R7, R8, R9, R10.
+> 5. Optional: Tavily and AbuseIPDB free keys.
 >
-> ### E. Facts the next session must not re-discover
-> - **Versions:** Python 3.12 (`backend/.python-version`) · uv 0.12.6 · openai-agents 0.24.0 · mcp 2.3.0 (`MCPServer`) · FastAPI 0.162.5 (SSE = `fastapi.sse`) · SQLModel 0.0.49 · Alembic 1.20 · PyJWT 2.15.
-> - **Model:** `gpt-5-nano` ($0.05 in / $0.40 out per 1M tokens, checked 2026-11-12, ADR-0003). Per-run budget $0.05; ledger cap $9 (`backend/.agent-ledger.json`).
-> - **Offline testing:** `agents.testing.ScriptedModel` (one per agent: `agent_service.testing.scripted/build_offline`); the fake KSOR server is `ksor_client.testing.build_fake_ksor`.
-> - **Ports:** gateway 8000 · agent-service 8100 · wazuh-mcp 8101 · enrichment-mcp 8102 · handbook 8080.
-> - **`.env` (backend/.env, mode 600, gitignored):** Naveed filled OPENAI_API_KEY and SOC_DB_URL. Claude generated MASK_MAP_KEY and AGENT_INTERNAL_TOKEN without displaying them, and added non-secret defaults. **Never read, cat, source or print it.** Only `grep -c '^NAME=' .env`-style name checks.
-> - **PR rhythm:** Naveed merges every pushed branch quickly. ALWAYS run the guard before pushing; if the branch is merged, make a new branch from origin/main (this happened 5 times; nothing was lost).
-> - **Docker:** not installed in this WSL distro. Images are built in CI (`images` job). The uv image tag is `0.12.6-python3.12-trixie-slim` (the bookworm tag is 404).
-> - **The handbook gate is OFF:** KSOR never abstains, so the Scope Guard declines (ADR-0002). A live handbook search costs an OpenAI embedding (on the handbook side).
-> - **Commands (backend/):**
->   - checks and evals: `make check` · `make eval-dry` · `make eval-stats` · `make eval-review`;
->   - demos: `make demo-masking` · `make demo-mcp` · `make demo-ask` / `make demo-triage` (FAKE, free) · `LIVE=1 CONFIRM=haan` (paid);
->   - servers: `make serve-wazuh-mcp` · `make serve-enrichment-mcp` · `make serve-agent` · `make serve-gateway`;
->   - database and Docker: `make db-upgrade CONFIRM=haan` · `make up` / `make down` / `make trivy`.
->
-> | # | Feature | State | Proof |
-> |---|---|---|---|
-> | 01 | foundation | **verified** by Naveed | VERIFY 01 |
-> | 02 | evals-first | done; **labels 0/40 + 0/95 verified** | eval-dry: oracle passes every target |
-> | 03 | mcp-services | done | 53 tests, HTTP smoke test |
-> | 04 | handbook-client | done; live demo pending (R1) | 16 tests |
-> | 05 | agents-core | done offline; live pending (R1/R2) | 17 ScriptedModel flow tests |
-> | 06 | guardrails | done offline; paid refusal eval pending (R5) | guardrail tests |
-> | 07 | agent-service API | done | 7 API tests |
-> | 08 | api-gateway | done; Neon (R7) + Auth0 (R9) pending | 10 end-to-end tests |
-> | 09 | docker | done; local `make up` pending (R8) | CI run 43228002776: 4 images + Trivy green |
-> | 10 | ci-cd | done; first GHCR release pending (R10) | CI green |
+> ### E. Facts (in addition to the session-1 facts below)
+> - **Spend:** pilots + diagnostics + the lost first R5 attempt = $0.0765 before R5. Measured: ~$0.004–0.012 and 2–9 min per alert; ~$0.001 per allowed probe.
+> - **Live-only lessons** (LEARNING §14–15):
+>   - no `format: uri` in output schemas;
+>   - `env_ignore_empty`;
+>   - one corrective retry, fed rule messages only;
+>   - `policy_hints`;
+>   - `tool_choice` to force the first search;
+>   - the reviewer sees the citations and the masked context.
+> - **Session-1 facts:** versions, ports, `.env` rules, commands — see the session-1 FINAL HANDOFF block below.
 
 ---
 
@@ -431,3 +432,64 @@ See the READ ME FIRST box, section D:
 - "haan" for R1, R2, R5, R7 and R10;
 - Docker Desktop WSL integration;
 - Auth0 when you want real login.
+
+
+---
+
+## Sessions 2–3 — 2026-11-12 / 2026-11-13
+
+## Last updated (ISO date-time, session number)
+2026-11-13T06:00Z · sessions 2–3 (session 3 began after a Claude Code restart). R5 running.
+
+## Done this session (items + files + commit hashes)
+**Feature 11 live-eval** (`specs/11-live-eval/`), PRs #13–#25:
+
+| PR | What |
+|---|---|
+| #13/#14 | pipeline + AgentPipeline + estimate + pre-flight + guards (T11-01…08) |
+| #15 | pilot-1 fixes: `format: uri` → str+pattern; `env_ignore_empty` (T11-09/10) |
+| #16/#17 | pilot-2 findings; usage kept on errors; ledger-verified cap; one note retry; no handoff answers (T11-11…14) |
+| #18/#19 | pilot-3 recordings; events in predictions + report Diagnostics (T11-15…17) |
+| #20/#21 | diagnostic run; reviewer sees citations; rule-failure retry + policy_hints; /ask retry; scorer counts errors (T11-18…21) |
+| #22/#23 | pilot 4; reviewer sees the masked analyst context; forced first search (T11-22/23) |
+| #24 | VERIFY.md 07–10, live evidence 04–06, `specs/DOD-CHECK.md`, LEARNING §15, PHR-0017, .gitignore ledger |
+| #25 | resumable paid runs: per-item journal, `--resume` (T11-24) |
+
+PHRs: 0014, 0015, 0016, 0017. ADR: 0010 (accepted, updated).
+
+## Current state (feature table 01–10: not started / intent / spec / plan / tasks / implementing / verified)
+- 01 is verified.
+- 02–10 are implemented, VERIFY filled, waiting for Naveed.
+- 11 is implemented and live-piloted; R5 is running.
+
+## Decisions taken (link ADRs)
+- **ADR-0010:** two-key paid run, run cap $1.50, live KSOR, no AbuseIPDB mock, pilot first.
+- **Naveed's answers:**
+  - Q1: one corrective retry;
+  - Q2: keep gpt-5-nano until the R5 data;
+  - "jo best lga wo kro" → option A (code constraints, then a full baseline).
+
+## Errors hit + fixes
+- **Push to a merged branch** (`&&` after `gh`). Fixed by testing the output; PR create also goes inside the if-block (memory).
+- **Live bugs T11-09…23.** See `tasks.md`.
+- **First R5 attempt lost** with the session (~$0.017). Fixed with T11-24 (resumable, detached run).
+
+## Pending / blocked (reason + who acts: Naveed or Claude)
+- R5 → Claude.
+- See the box, sections C and D.
+
+## Eval results so far (numbers)
+- **Pilots (6 items):**
+  - the scope declines are exact every time;
+  - masking holds: 0 raw IPs;
+  - triage verdict quality is variable (needs_info vs TP);
+  - the full escalation was correct after policy_hints.
+- **R5:** pending.
+- **Tests:** 354 passed, coverage 93.64%.
+- **Spend:** $0.0765 before R5.
+
+## Exact next step for the next session
+Box §B3: finish or resume R5, then analyse it (Diagnostics) → the R6 plan (.txt) → Naveed "approved".
+
+## Naveed's manual actions needed
+See the box, section D.
