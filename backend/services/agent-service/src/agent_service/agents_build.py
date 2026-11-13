@@ -166,10 +166,12 @@ def build_agents(
         tools=[
             handbook.as_tool(
                 tool_name="ask_handbook",
+                hooks=nested_hooks,  # sub-agent calls are priced too (OpenAI CSV check, 2026-11-13)
                 tool_description="Ask the SOC handbook agent; returns a cited answer.",
             ),
             research.as_tool(
                 tool_name="ask_research",
+                hooks=nested_hooks,  # sub-agent calls are priced too (OpenAI CSV check, 2026-11-13)
                 tool_description="Ask the cyber research agent (unverified web sources).",
             ),
             tools["get_alert"],

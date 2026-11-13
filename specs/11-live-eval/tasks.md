@@ -58,3 +58,11 @@ Legend: [ ] todo · [~] in progress · [x] done · ⬆ = commit + push (run the 
 | ID | Task | Satisfies | Done when |
 |---|---|---|---|
 | [x] T11-24 | Resumable paid runs: `run_all(sink=…)` appends each prediction to `recordings/paid/<date-HHMM-sha>-*.jsonl` at once. `--resume <stem>` / `make eval RESUME=<stem>` skips the done items, and their cost counts toward the cap. Output is unbuffered. The run is started with `setsid nohup`, so it survives the session. | R5 robustness | 4 new tests; `make check` 354 passed |
+
+**Found by validating against Naveed's OpenAI usage CSV (2026-11-13):**
+- The CSV shows gpt-5-nano at 583k in / 411k out tokens, about $0.18 at list price. The ledger held about $0.12 at the same time.
+- The R5 log showed 0 `soc_handbook_agent` calls inside `/triage`.
+
+| ID | Task | Satisfies | Done when |
+|---|---|---|---|
+| [x] T11-25 | `handbook.as_tool(..., hooks=nested_hooks)` and the same for research, so the sub-agent calls reach the ledger, the per-item budget and the run cap. `openai expense/` is gitignored. | cost guard accuracy | `test_as_tool_sub_agent_calls_are_priced` (fails without the fix); 355 passed |
