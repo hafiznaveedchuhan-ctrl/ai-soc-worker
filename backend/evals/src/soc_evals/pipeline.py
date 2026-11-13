@@ -1,8 +1,9 @@
 """Run eval items through a pipeline (FR-11-04…06). Pure code: no agent imports, so it is tested
 with a fake pipeline; `soc_evals.live.AgentPipeline` is the real one."""
 
+import asyncio
 import time
-from collections.abc import Callable, Iterable
+from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import dataclass, field
 from typing import Literal, Protocol
 
@@ -63,6 +64,8 @@ async def run_all(
     *,
     done: tuple[list[AlertPrediction], list[ProbePrediction]] | None = None,
     sink: Callable[[AlertPrediction | ProbePrediction], None] | None = None,
+    concurrency: int = 1,
+    item_timeout_s: float = 900.0,
 ) -> RunOutcome:
     """Run the selected items one by one. Stops (keeping what it has) once spend reaches max_usd.
 
@@ -105,12 +108,14 @@ async def run_all(
             progress(f"STOP: run-wide cap ${max_usd:.2f} reached (spent ${out.spent_usd:.4f})")
         return out.stopped_at_cap
 
-    for aid in alert_ids:
-        if over_cap():
-            return out
+    async def one_alert(aid: str) -> None:
         t0 = time.perf_counter()
         try:
-            a = await pipeline.run_alert(aid, data.alerts[aid], data.contexts.get(aid, ""))
+            # a hung HTTP call must not stall the run (P3 hung 14+ min on one probe, 2026-11-13)
+            a = await asyncio.wait_for(
+                pipeline.run_alert(aid, data.alerts[aid], data.contexts.get(aid, "")),
+                item_timeout_s,
+            )
         except Exception as exc:
             a = AlertPrediction(alert_id=aid, error=f"exception: {type(exc).__name__}: {exc}"[:300])
         if not a.latency_ms:
@@ -119,12 +124,10 @@ async def run_all(
         account(a)
         progress(f"{aid}: {'ok' if a.error is None else a.error[:60]}  ${out.spent_usd:.4f}")
 
-    for pid in probe_ids:
-        if over_cap():
-            return out
+    async def one_probe(pid: str) -> None:
         t0 = time.perf_counter()
         try:
-            p = await pipeline.run_probe(data.probes[pid])
+            p = await asyncio.wait_for(pipeline.run_probe(data.probes[pid]), item_timeout_s)
         except Exception as exc:
             p = ProbePrediction(probe_id=pid, error=f"exception: {type(exc).__name__}: {exc}"[:300])
         if not p.latency_ms:
@@ -132,6 +135,31 @@ async def run_all(
         out.probes.append(p)
         account(p)
         progress(f"{pid}: {p.scope_label or p.error}  ${out.spent_usd:.4f}")
+
+    # Up to `concurrency` items in flight (session 3: 135 items took ~3.5 h one by one).
+    # The cap is checked before EACH new item starts; items already running finish, so a capped
+    # run can overshoot by at most (concurrency - 1) items' cost.
+    sem = asyncio.Semaphore(max(1, concurrency))
+
+    async def guarded(job: Callable[[str], Awaitable[None]], item: str) -> None:
+        try:
+            await job(item)
+        finally:
+            sem.release()
+
+    for ids, job in ((alert_ids, one_alert), (probe_ids, one_probe)):
+        tasks: list[asyncio.Task[None]] = []
+        for item in ids:
+            await sem.acquire()
+            if over_cap():
+                sem.release()
+                break
+            tasks.append(asyncio.create_task(guarded(job, item)))
+        await asyncio.gather(*tasks)
+        if out.stopped_at_cap:
+            break
+    out.alerts.sort(key=lambda x: x.alert_id)
+    out.probes.sort(key=lambda x: x.probe_id)
     return out
 
 
