@@ -135,3 +135,49 @@ async def test_resume_skips_done_items_and_counts_their_cost() -> None:
     assert out.alerts[0] is prev  # kept in the outcome and the report
     # $0.40 already spent + 2 x $0.30 = $1.00 → cap reached after 2 new items
     assert out.stopped_at_cap and len(out.alerts) == 3
+
+
+# ------------------------------------------------------------------ concurrency (session 3)
+class SlowFake(Fake):
+    def __init__(self) -> None:
+        super().__init__(cost=0.01)
+        self.in_flight = self.peak = 0
+
+    async def run_probe(self, probe: Probe) -> ProbePrediction:
+        import asyncio
+
+        self.in_flight += 1
+        self.peak = max(self.peak, self.in_flight)
+        await asyncio.sleep(0.01)
+        self.in_flight -= 1
+        return await super().run_probe(probe)
+
+
+async def test_concurrency_runs_items_in_parallel_and_keeps_order() -> None:
+    f = SlowFake()
+    out = await run_all(D, f, Selection(only="probes", limit=12), 1.5, concurrency=4)
+    assert f.peak == 4 and len(out.probes) == 12
+    assert [p.probe_id for p in out.probes] == sorted(p.probe_id for p in out.probes)
+
+
+async def test_concurrency_respects_the_cap_with_bounded_overshoot() -> None:
+    f = SlowFake()
+    f.cost = 0.30
+    out = await run_all(D, f, Selection(only="probes"), 1.0, concurrency=3)
+    assert out.stopped_at_cap
+    assert 4 <= len(out.probes) <= 4 + 2  # stops at $1.00; at most 2 more were in flight
+
+
+async def test_a_hung_item_times_out_and_the_run_continues() -> None:
+    import asyncio
+
+    class Hang(Fake):
+        async def run_probe(self, probe: Probe) -> ProbePrediction:
+            if probe.probe_id == "EV-P002":
+                await asyncio.sleep(10)
+            return await super().run_probe(probe)
+
+    out = await run_all(D, Hang(), Selection(only="probes", limit=3), 1.5, item_timeout_s=0.05)
+    errs = {p.probe_id: p.error for p in out.probes}
+    assert errs["EV-P002"] and "TimeoutError" in errs["EV-P002"]
+    assert errs["EV-P001"] is None and errs["EV-P003"] is None

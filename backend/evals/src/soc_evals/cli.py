@@ -146,6 +146,8 @@ def cmd_paid(args: argparse.Namespace) -> int:
             progress=lambda m: print(m, flush=True),
             done=done,
             sink=lambda p: append_jsonl(files, p),
+            concurrency=args.concurrency,
+            item_timeout_s=args.item_timeout,
         )
     )
     return finish_paid(data, outcome, models, args.max_usd, stem=stem)
@@ -255,6 +257,8 @@ def main(argv: list[str] | None = None) -> int:
     paid.add_argument("--max-usd", type=float, default=1.50, help="run-wide spend cap")
     paid.add_argument("--export-traces", action="store_true")
     paid.add_argument("--resume", default="", help="journal stem of an interrupted run")
+    paid.add_argument("--concurrency", type=int, default=5, help="items in flight (1 = one by one)")
+    paid.add_argument("--item-timeout", type=float, default=900.0, help="seconds per item")
     sub.add_parser("estimate", help="FREE offline cost estimate of a full paid run")
     sub.add_parser("stats", help="dataset composition")
     sub.add_parser("review", help="write the label review sheet")

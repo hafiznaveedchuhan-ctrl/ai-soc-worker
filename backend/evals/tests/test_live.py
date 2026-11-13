@@ -248,7 +248,15 @@ async def test_preflight_up_and_down() -> None:
 # ------------------------------------------------------------------ CLI guards (FR-11-01)
 def _args(**kw: Any) -> argparse.Namespace:
     base = dict(
-        yes_paid=True, only="all", ids="", limit=None, max_usd=1.5, export_traces=False, resume=""
+        yes_paid=True,
+        only="all",
+        ids="",
+        limit=None,
+        max_usd=1.5,
+        export_traces=False,
+        resume="",
+        concurrency=1,
+        item_timeout=900.0,
     )
     base.update(kw)
     return argparse.Namespace(**base)
