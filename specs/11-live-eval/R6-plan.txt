@@ -1,0 +1,62 @@
+PLAN — R6: after the R5 baseline (feature 11). Status: DRAFT, waiting for Naveed's "approved".
+2026-11-13, session 3. R5 = journal 2026-11-13-0550-3ad7c88 (main 3ad7c88, gpt-5-nano everywhere).
+
+======================================================================
+1. R5 BASELINE — 135/135 items, full run, about 3 h 25 min
+======================================================================
+Spend:
+  ledger $0.3179 for the run. OpenAI CSV, list price: about 1/3 higher, because of the as_tool bug
+  (fixed in PR #27 after the run started). Billed: $0.00, because every gpt-5-nano call was on the
+  "incentivized-tier" (Naveed's dashboard: total spend $0.02 in November).
+
+  Target                              Result            Rule     Status
+  TP recall                           3/21  = 14.3%     >= 95%   FAIL
+  TP precision                        3/3   = 100%      >= 80%   PASS
+  Claims cited or labelled            45/58 = 77.6%     = 100%   FAIL  (the 12 errored alerts count as fails)
+  Scope decline (DECLINE set)         21/30 = 70.0%     >= 90%   FAIL  (8 of the 9 misses are tool_choice 400s, see 2a)
+  False declines (ALLOW sets)         2/55  = 3.6%      <= 10%   PASS
+  Outputs without leaks               80/92 = 87.0%     = 100%   FAIL  (REAL leaks found: 0. The 12 errored alerts count as
+                                                                        fails; the guardrail BLOCKED 1 raw value, EV-A018)
+  Notes without invented MITRE IDs    28/40 = 70.0%     = 100%   FAIL  (the same 12 errored alerts)
+
+Probes: all 33 declines used the exact text; NON_CYBER 10/10; KSOR expected page 14/18 among those answered.
+Latency: alerts p50 174 s, p95 390 s; probes p50 10 s.
+
+======================================================================
+2. WHY (the Diagnostics of the run)
+======================================================================
+2a  43/95 probes = HTTP 400 "tool_choice web_search_preview" (my T11-23 bug, fixed in PR #28).
+    The exception escaped run_ask (openai.BadRequestError is not an AgentsException), so these
+    probes have NO events and NO usage. We do not know which agent was reached. This is a code gap.
+2b  Alerts: 28 ok, 7 blocked, 5 error.
+    - 6 of the 12 failures = the gpt-5-nano LLM REVIEWER rejected over invented "inconsistencies"
+      (A003, A008, A019, A022, A030, A033). These are false positives.
+    - 4 = invalid notes, even after the retry ("needs_info requires missing_info" x3, "a verdict
+      needs a KSOR citation" x1).
+    - 1 = our rule blocked a citation that KSOR never returned (A001). Correct.
+    - 1 = our rule blocked a raw value (A018). Correct.
+2c  Verdict quality: gpt-5-nano answers "needs_info" for 19 of 32 TP/benign_TP notes (TP→needs_info 11,
+    benign_TP→needs_info 8). It is over-cautious, and this alone makes TP recall 3/21.
+    → A MODEL problem of the triage_coordinator, not a code problem. Constitution VI.2 applies.
+NOTE: the labels are still unreviewed (0/40). The verdict numbers are drafts.
+
+======================================================================
+3. PROPOSED STEPS
+======================================================================
+FREE (offline, $0):
+T11-27  flows: catch ANY exception in run_ask / run_triage (incl. openai.APIError) → status
+        "error", KEEP usage + events. Gap 2a showed that a 400 leaves no trace.
+T11-28  report: print "real leaks found: N" and "errored items: N" next to the leak/MITRE/cite rates,
+        so the conservative rates are not misread as leaks.
+PAID (each needs "haan"):
+P1  Re-run ONLY the 43 probes that hit the 400 (--ids, a new journal), with PR #28 merged.
+    About $0.03. This completes the scope baseline (DECLINE / KSOR / RESEARCH sets).
+P2  ADR-0011 (constitution VI.2: ONE agent): triage_coordinator → gpt-5-mini ($0.25 / $2.00 per 1M).
+    Re-run the 40 alerts. Estimate from R5 (13.6k out tokens per alert, about half of them from
+    the coordinator): about $0.03 per alert → about $1.2 for 40. The run cap is raised to $2.50
+    FOR THAT RUN only. Note: the incentivized tier may not cover gpt-5-mini, so this could be REAL
+    money from the $5.96 credit.
+P3  Later and only if the data still says so: ADR-0012 note_reviewer → gpt-5-mini (6 of the 12
+    alert failures are reviewer false positives).
+
+Recommended order: T11-27 + T11-28 (free) → P1 → P2 → label review → decide P3.
