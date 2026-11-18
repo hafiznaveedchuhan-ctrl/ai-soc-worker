@@ -79,12 +79,12 @@ def build_agents(
     tools = make_tools(deps, suggestions_dir)
     names = {
         k: (m if isinstance(m, str) else type(m).__name__)
-        for k in ("triage", "handbook", "research", "scope", "reviewer")
+        for k in ("triage", "router", "handbook", "research", "scope", "reviewer")
         for m in [model_for(k)]
     }
 
     model_names = {
-        "triage_agent": names["triage"],
+        "triage_agent": names["router"],
         "triage_coordinator": names["triage"],
         "soc_handbook_agent": names["handbook"],
         "cyber_research_agent": names["research"],
@@ -156,7 +156,9 @@ def build_agents(
     ask_entry: Agent[WorkerContext] = Agent(
         name="triage_agent",
         instructions=_route,
-        model=model_for("triage"),
+        model=model_for(
+            "router"
+        ),  # the /ask router — separate from the /triage coordinator (ADR-0012)
         handoffs=[handbook, research],
         input_guardrails=[make_scope_guard(classify)],
     )

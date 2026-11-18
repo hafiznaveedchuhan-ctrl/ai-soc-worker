@@ -166,7 +166,12 @@ def build_live(env_file: Path | None) -> tuple[AgentPipeline, str]:  # pragma: n
         ledger=Ledger(s.ledger_path, s.total_budget_usd),
     )
     models = ", ".join(
-        sorted({s.model_for(k) for k in ("triage", "handbook", "research", "scope", "reviewer")})
+        sorted(
+            {
+                s.model_for(k)
+                for k in ("triage", "router", "handbook", "research", "scope", "reviewer")
+            }
+        )
     )
     extras = (
         f"web={'tavily' if web else 'off'}, abuseipdb={'on' if enrich.abuseipdb_api_key else 'off'}"

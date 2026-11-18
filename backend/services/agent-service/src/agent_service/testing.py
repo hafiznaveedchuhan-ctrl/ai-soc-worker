@@ -85,7 +85,8 @@ def build_offline(
     max_turns: int = 12,
 ) -> tuple[AgentSet, FlowConfig, Deps]:
     d = deps or offline_deps()
-    app = build_agents(lambda key: models[key], d, suggestions_dir)
+    # the /ask router shares the "triage" script (it was one model key before ADR-0012)
+    app = build_agents(lambda key: models["triage" if key == "router" else key], d, suggestions_dir)
     return (
         app,
         FlowConfig(prices=dict(DEFAULT_PRICES), run_budget_usd=run_budget_usd, max_turns=max_turns),

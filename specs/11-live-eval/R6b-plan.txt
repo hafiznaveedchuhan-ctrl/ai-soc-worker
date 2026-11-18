@@ -1,0 +1,29 @@
+PLAN — R6b: ADR-0012 triage_coordinator → gpt-5-mini. Status: DRAFT — waiting for Naveed's "approved" + "haan".
+2026-11-18, session 4. Constitution VI.2: one agent, with an ADR, after the evals fail.
+
+1. EVIDENCE (R5, gpt-5-nano, 40 alerts)
+   TP recall 3/21 = 14% (target 95%); TP precision 3/3; verdict accuracy 8/40.
+   gpt-5-nano answers "needs_info" for 19 of 32 TP/benign_TP notes: it is over-cautious, not wrong-directed.
+   12 of the 40 got no note: 6 LLM-reviewer false positives, 4 invalid notes even after the retry, 2 correct blocks.
+   The code fixes since R5 also help: the reviewer sees the context, the specialists must search, the
+   policy_hints, as_tool pricing, timeouts.
+
+2. CHANGE
+   AgentSettings.model_triage default = "gpt-5-mini" (AGENT_MODEL_TRIAGE still overrides).
+   Every other agent is unchanged: scope = mini (ADR-0011); handbook, research and reviewer = nano.
+
+3. RUN
+   40 alerts, `--only alerts --concurrency 5 --item-timeout 900`, about 15 min.
+   Cost, measured from R5: the coordinator uses 14.7k in / 9.9k out tokens per alert → about $0.023
+   per alert on mini → about $0.94 for 40. The nano reviewer and handbook add about $0.15.
+   EXPECTED about $1.1 · cap $2.00.
+   NOTE: gpt-5-mini may not be on the incentivized tier, so this may be REAL money from the $5.96 credit.
+
+4. SUCCESS
+   TP recall clearly up (≥ 50% would be a big step; the 95% target needs reviewed labels too).
+   No drop in TP precision. Real leaks stay 0.
+   If the needs_info over-use remains → revisit the triage prompt and the TriageNote rules before
+   any further upgrade.
+
+5. NOTE
+   The alert labels are unreviewed (0/40). The verdict numbers are drafts until Naveed's label review.
