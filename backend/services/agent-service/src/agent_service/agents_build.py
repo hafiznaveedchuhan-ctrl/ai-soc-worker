@@ -169,6 +169,12 @@ def build_agents(
         "ip_reputation for PUBLIC <IP-n> tokens; use ask_research only for context the handbook lacks "
         "(never as the only basis for a verdict). If an escalation condition (1-8) applies, set "
         "escalate=true with that condition and propose create_escalation_ticket (a human approves). "
+        "VERDICT RULE (handbook: playbook 'Verdict criteria' table + triage-note/example-needs-info): "
+        "ask_handbook for the playbook's verdict criteria and decide by them. Use needs_info ONLY when "
+        "the DECIDING evidence named by those criteria is missing from the alert and context. Routine "
+        "follow-up checks (account privilege, later activity, raw-log corroboration, business context) "
+        "do NOT make a note needs_info: give the verdict the criteria support and list those checks in "
+        "missing_info as next steps for the human. "
         "final_decision_by is always 'human'." + COMMON,
         model=model_for("triage"),
         tools=[

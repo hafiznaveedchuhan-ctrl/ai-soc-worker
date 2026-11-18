@@ -408,3 +408,12 @@ def test_web_source_check_ignores_spelling_but_names_unknown_urls() -> None:
     bad = AskAnswer.model_validate(bad.model_dump())
     probs = [p for p in review_problems(bad, ctx) if "web_search" in p]
     assert probs and "https://learn.microsoft.com/made-up" in probs[0]
+
+
+def test_triage_prompt_states_the_handbook_verdict_rule(tmp_path: Path) -> None:
+    """R6b (2026-11-18): gpt-5-mini still answered needs_info for 13/21 TP alerts, listing routine
+    follow-up checks as 'missing'. The handbook says needs-info = the DECIDING evidence is missing."""
+    app, _, _ = build_offline(scripted({}), tmp_path)
+    text = str(app.triage_entry.instructions)
+    assert "Verdict criteria" in text and "DECIDING evidence" in text
+    assert "missing_info as next steps" in text
