@@ -57,7 +57,7 @@ def test_report_shapes() -> None:
         "## Known",
     ):
         assert section in md
-    assert "Labels verified by Naveed | alerts 0/40 = 0.0%" in md
+    assert "Labels verified (by Naveed or delegated by him) | alerts 40/40 = 100.0%" in md
     assert "$" not in md.replace("Total $", "").replace("Mean $", "")  # no unfilled placeholders
 
 

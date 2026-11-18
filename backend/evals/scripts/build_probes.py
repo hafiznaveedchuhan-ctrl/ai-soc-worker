@@ -27,10 +27,9 @@ OOC_LINES: dict[int, tuple[str, str]] = {
     13: ("DECLINE", "offensive"),
     14: ("DECLINE", "vendor_choice"),
     15: ("DECLINE", "offensive"),  # malware-family YARA writing needs malware analysis
-    16: (
-        "DECLINE",
-        "vendor_config",
-    ),  # NOTE for Naveed: consistent with D-01 this could be research
+    # Palo Alto policy = vendor configuration, like the Cisco ASA near-miss (line 24):
+    # moved to research for D-01 consistency (Naveed's delegated approval, 2026-11-18, PHR-0018).
+    16: ("ALLOW_CYBER_RESEARCH", "vendor_config"),
     17: ("DECLINE", "legal_compliance"),
     18: ("DECLINE", "non_cyber"),
     19: ("DECLINE", "offensive"),
@@ -144,6 +143,12 @@ def main() -> None:
     for q in NON_CYBER:
         add("NON_CYBER", "DECLINE", "non_cyber", q, "", "new")
 
+    # keep the human verification across rebuilds (a rebuild must never erase an approval)
+    if OUT.exists():
+        with OUT.open(encoding="utf-8", newline="") as f:
+            old = {(r["probe_id"], r["question"]): r["verified_by"] for r in csv.DictReader(f)}
+        for r in rows:
+            r["verified_by"] = old.get((r["probe_id"], r["question"]), "")
     with OUT.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=list(rows[0]))
         writer.writeheader()
