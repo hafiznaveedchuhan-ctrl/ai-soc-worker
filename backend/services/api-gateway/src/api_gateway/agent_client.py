@@ -6,8 +6,16 @@ import httpx
 
 
 class AgentClient:
-    def __init__(self, base_url: str, token: str, http: httpx.AsyncClient | None = None) -> None:
-        self._http = http or httpx.AsyncClient(base_url=base_url, timeout=180)
+    def __init__(
+        self,
+        base_url: str,
+        token: str,
+        http: httpx.AsyncClient | None = None,
+        timeout_s: float = 900.0,
+    ) -> None:
+        # A /triage on gpt-5-mini takes 2-6 min (R6c p95 ~390 s); 180 s gave ReadTimeout in
+        # `make demo-up` (2026-11-18). The agent-service has its own run budget and max_turns.
+        self._http = http or httpx.AsyncClient(base_url=base_url, timeout=timeout_s)
         self._headers = {"X-Internal-Token": token}
 
     async def ask(self, question: str, user_id: str, session_id: str) -> dict[str, Any]:

@@ -13,7 +13,9 @@ from api_gateway.settings import GatewaySettings
 def main() -> None:
     s = GatewaySettings()
     engine = make_engine(s.db_url.get_secret_value())
-    agent = AgentClient(s.agent_url, s.agent_internal_token.get_secret_value())
+    agent = AgentClient(
+        s.agent_url, s.agent_internal_token.get_secret_value(), timeout_s=s.agent_timeout_s
+    )
     uvicorn.run(
         create_app(s, engine, agent),
         host=os.environ.get("GATEWAY_HOST", "127.0.0.1"),

@@ -41,6 +41,7 @@ version = "0.1.0"
 source = { editable = "services/agent-service" }
 dependencies = [
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "ksor-client" },
     { name = "mcp" },
     { name = "openai-agents" },
@@ -51,6 +52,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.162.5" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "ksor-client", editable = "packages/ksor-client" },
     { name = "mcp", specifier = "==2.3.0" },
     { name = "openai-agents", specifier = "==0.24.0" },
