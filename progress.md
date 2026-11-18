@@ -4,71 +4,52 @@ Protocol: `CLAUDE.md` §1. Plan of record: `specs/00-final-plan.txt` (v2). Const
 **Append-only:** add a new session block at the bottom; never delete or edit an old (closed) block.
 Only the "READ ME FIRST" box below is rewritten in place, every session.
 
-> ## READ ME FIRST — HANDOFF after SESSION 4 (rewritten 2026-11-18; next = SESSION 5)
+> ## READ ME FIRST — HANDOFF after SESSION 4 (rewritten 2026-11-18, final for MVP; next = SESSION 5)
 >
-> ### A. One-line status
-> **Features 01–11 are coded; PRs #1–#35 are merged, #36 is open.** 366 tests pass, coverage ≈ 94%.
+> ### A. Status
+> **MVP done.** Features 01–11 are merged (PRs #1–#44); 368 tests pass; coverage ≈ 94%; CI green; **GHCR release pushed** (all 4 images).
 >
-> **Feature 11 (live eval) runs:**
-> - two-key guard, cap, per-item journal, `--resume`;
-> - `--concurrency 5`;
-> - `--item-timeout`;
-> - a Diagnostics section and a "how to read the rates" note in the report.
+> Infrastructure:
+> - **`make up` + `make demo-up`** work end to end in Docker;
+> - **Neon** is migrated (`neondb`, 8 tables);
+> - **Auth0** is configured: tenant `dev-78jlhsubimuljjjn.us.auth0.com`, audience `https://soc-worker-api`;
+> - local runs stay on `AUTH_MODE=dev` until a login frontend exists.
 >
-> **Paid runs done:**
-> - R5 baseline: 135 items, all gpt-5-nano;
-> - P1: probe re-run;
-> - P2: **ADR-0011, scope_classifier → gpt-5-mini**;
-> - P3: ADR-0002 prompt + Tavily;
-> - P4: research re-run.
+> Evals:
+> - **scope target met** (DECLINE 29/30, false declines ≤ 10%, leaks 0);
+> - **triage** TP recall 8/21, precision 8/10 (R6c);
+> - ledger $2.56 (OpenAI billing ≈ $0 on the incentivized tier).
 >
-> Ledger: **$0.97**. Billed by OpenAI: about $0, because gpt-5-nano is on the incentivized tier (Naveed's dashboard).
+> Models: scope + triage = gpt-5-mini (ADR-0011 / 0012); everything else = gpt-5-nano.
 >
-> **Scope now (P3):**
-> - DECLINE **29/30 = 97%** ✅ (target 90%)
-> - KSOR 26/30
-> - RESEARCH 19/25
-> - false declines 3/55 ✅
-> - exact decline text 100%
-> - real leaks 0
+> `specs/DOD-CHECK.md`: 8/9 ✅. Item 1 waits on Naveed's VERIFY checks.
 >
-> **Triage (R5, nano):** TP recall 3/21. gpt-5-nano says needs_info too often. This is the next upgrade candidate.
+> ### B. Start session 5 (Claude)
+> 1. Read this box.
+> 2. `git checkout main && git pull`, then `cd backend && uv sync --all-packages && make check` → 368 passed.
+> 3. Push guard: push AND `gh pr create` go inside `if [ -z "$(gh pr list --head $B --state merged)" ]`.
+> 4. **Handbook for Docker/evals.** Start it with:
+>    ```
+>    NODE_OPTIONS="--network-family-autoselection-attempt-timeout=3000" KSOR_ALLOWED_HOSTS=localhost,127.0.0.1,host.docker.internal,localhost:8080,127.0.0.1:8080,host.docker.internal:8080 npm run serve
+>    ```
+> 5. **Paid runs:**
+>    - run them detached, with `--concurrency 5`;
+>    - run them from the MAIN folder, because a worktree has no `.env`;
+>    - ask Naveed for "haan" first.
 >
-> ### B. How to START session 5 (Claude)
-> 1. Read this box, then the bottom block.
-> 2. `git fetch && git checkout main && git pull`, then `git status`.
-> 3. `cd backend && uv sync --all-packages && make check` → `366 passed`.
-> 4. Tell Naveed 3 Roman-Urdu lines.
-> 5. **Push guard (always).** Push AND `gh pr create` go INSIDE `M="$(gh pr list --head "$B" --state merged)"; if [ -z "$M" ]; then …; fi`.
-> 6. **Paid runs.** Start them detached with `setsid nohup … &`; watch with `pgrep -f '[p]ython3 -m soc_evals paid'` (the bracket stops it matching itself); use `--concurrency 5`; and ask Naveed for "haan" first, every time.
->    Before committing a journal, gate on the raw-IP grep. CIDR names like `10.0.0.0/8` are fine.
->
-> ### C. Remaining work
-> | # | Task | Who | State |
-> |---|---|---|---|
-> | R6a | Merge #36 (URL repair + URL normalization) → re-run the 25 research probes (~$0.10) | Naveed merge + "haan" | next |
-> | R6b | **ADR-0012: triage_coordinator → gpt-5-mini**, then re-run the 40 alerts (~$1.2, cap $2.50; may be real money) | plan .txt → Naveed | after R6a |
-> | R6c | Maybe later: note_reviewer → gpt-5-mini (many false positives in R5/P4) | data decides | later |
-> | R7–R10 | Neon, Docker `make up`, Auth0, GHCR | Naveed | open |
-> | R11 | `specs/DOD-CHECK.md` | Claude + Naveed | 5/9 ✅ |
+> ### C. Next (after the MVP)
+> | # | Task | Who |
+> |---|---|---|
+> | N1 | TP recall: the R6c Diagnostics → prompt/rule work, or ADR-0013 (note_reviewer → gpt-5-mini) | Claude + Naveed "haan" |
+> | N2 | Auth0 post-login Action for roles (`specs/08-api-gateway/AUTH0-SETUP.md`) | Naveed |
+> | N3 | Phase 1 B/C: wazuh-mcp reads LIVE Wazuh alerts (the lab is at `../wazuh-docker/single-node`; never `down -v`) | plan first |
+> | N4 | Phase 4: the handbook chat widget + login (then `AUTH_MODE=auth0`) | plan first |
+> | N5 | Phase 8: Azure deploy from the GHCR images | plan first |
 >
 > ### D. Waiting on Naveed
-> 1. **Rotate the Tavily key that was pasted in chat** (and the old OpenAI/Anthropic keys).
-> 2. **Label review**, especially:
->    - EV-P014 (Palo Alto = DECLINE vs Cisco ASA = research: an ADR-0002 inconsistency);
->    - the research/KSOR border (honeytoken, LAPS, Zeek, AMSI, DoH);
->    - EV-P066 and EV-P075.
-> 3. Verify VERIFY.md 02–11.
-> 4. R7–R10.
->
-> ### E. Facts
-> - **Models:** scope = gpt-5-mini (ADR-0011). Everything else is gpt-5-nano (ADR-0003).
-> - **OpenAI:** usage CSV and screenshots are in `openai expense/` (gitignored, private).
-> - **Live-only lessons:** see LEARNING §14–15 and `specs/11-live-eval/tasks.md` T11-09…33. They include:
->   - the SDK reserves `tool_choice="web_search"` for its hosted tool;
->   - `as_tool` needs hooks;
->   - catch every exception;
->   - a timeout per item.
+> 1. **Rotate the Tavily key** (pasted in chat) and the old OpenAI/Anthropic keys.
+> 2. Verify VERIFY.md 02–11 (DoD item 1).
+> 3. N2 (Auth0 roles Action).
 
 ---
 
@@ -557,6 +538,72 @@ Triage (R5): TP recall 3/21, precision 3/3, verdict accuracy 8/40.
 
 ## Exact next step for the next session
 R6a: merge #36, then (with "haan") re-run the 25 research probes. Then write the ADR-0012 plan for triage.
+
+## Naveed's manual actions needed
+See the box, section D.
+
+
+---
+
+## Session 4 (continued) — 2026-11-18, MVP close
+
+## Last updated (ISO date-time, session number)
+2026-11-18 · session 4 (closing)
+
+## Done this session (items + files + commit hashes)
+
+| PR | What |
+|---|---|
+| #36 | citation-URL repair and URL normalization |
+| #38 / #39 | ADR-0012 (triage → gpt-5-mini); the router key split |
+| #40 | the handbook verdict rule |
+| #41 | the reviewer accepts drafts that our rules allow |
+| #42 | labels approved by delegation; EV-P014 → research |
+| #43 | R6c results |
+| #44 | Docker: the httpx dependency; gateway timeout 900 s; CI smoke-import |
+
+Infrastructure:
+- R7 Neon migrated.
+- R8 `make up` / `demo-up` passed.
+- R9 Auth0 configured.
+- R10 GHCR release run 44250254761: success.
+
+## Current state (feature table 01–10: not started / intent / spec / plan / tasks / implementing / verified)
+- 01 is verified.
+- 02–11 are implemented, with VERIFY filled (waiting for Naveed).
+- MVP DoD 8/9.
+
+## Decisions taken (link ADRs)
+- ADR-0012 accepted.
+- Labels approved by delegation (PHR-0018).
+- Auth0 kept, instead of our own password store (Naveed, 2026-11-18).
+- Wazuh lab later.
+
+## Errors hit + fixes
+1. The agent-service image crashed (missing httpx) → declared, plus a CI smoke-import.
+2. The gateway ReadTimeout → 900 s.
+3. The handbook gave 421 to containers → `KSOR_ALLOWED_HOSTS`.
+4. The handbook lost Neon → `NODE_OPTIONS`.
+5. A worktree run had no `.env` → $0, now documented.
+6. A self-matching watcher → watch by PID.
+
+## Pending / blocked (reason + who acts: Naveed or Claude)
+See the box, sections C and D.
+
+## Eval results so far (numbers)
+- **R6c (triage = mini + verdict rule):**
+  - TP recall 8/21;
+  - precision 8/10;
+  - verdict accuracy 17/40;
+  - escalation condition 6/6.
+- **P3 scope:**
+  - DECLINE 29/30;
+  - false declines 3/55;
+  - leaks 0.
+- **Ledger:** $2.56.
+
+## Exact next step for the next session
+N1 (TP recall, from the R6c Diagnostics), or Naveed picks the next phase (N3, N4 or N5).
 
 ## Naveed's manual actions needed
 See the box, section D.
