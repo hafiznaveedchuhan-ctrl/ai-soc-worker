@@ -239,7 +239,12 @@ async def run_ask(
                 answer = r.final_output_as(AskAnswer)
                 return _done(ctx, t.trace_id, "ok", answer=answer, text=answer.answer)
             except Exception as exc:  # guardrail, agent or API error on the retry
-                ctx.events.append(f"retry failed {type(exc).__name__}: {ctx.output_problems}")
+                why = (
+                    exc.guardrail_result.output.output_info
+                    if isinstance(exc, OutputGuardrailTripwireTriggered)
+                    else ctx.output_problems
+                )
+                ctx.events.append(f"retry failed {type(exc).__name__}: {why}"[:400])
                 ans = _fallback_answer(
                     ctx, "The assistant produced an invalid answer. " + SAFE_FALLBACK
                 )
