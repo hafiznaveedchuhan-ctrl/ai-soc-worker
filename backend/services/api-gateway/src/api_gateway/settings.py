@@ -20,6 +20,7 @@ class GatewaySettings(BaseServiceSettings):
     mask_map_key: SecretStr | None = Field(
         default=None, validation_alias=AliasChoices("MASK_MAP_KEY")
     )
+    agent_timeout_s: float = Field(default=900.0, gt=0)  # GATEWAY_AGENT_TIMEOUT_S
     auth_mode: Literal["auth0", "dev"] = Field(
         default="dev", validation_alias=AliasChoices("AUTH_MODE")
     )
