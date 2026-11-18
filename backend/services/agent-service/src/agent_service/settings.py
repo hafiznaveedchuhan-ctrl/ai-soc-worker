@@ -21,7 +21,9 @@ class AgentSettings(BaseServiceSettings):
     model_config = SettingsConfigDict(env_prefix="AGENT_", env_file=None, extra="ignore")
 
     model_default: str = "gpt-5-nano"  # the smallest current OpenAI model (ADR-0003)
-    model_triage: str | None = None
+    # ADR-0012 (2026-11-18): gpt-5-nano chose needs_info for 19/32 TP/benign notes (R5).
+    model_triage: str | None = "gpt-5-mini"
+    model_router: str | None = None  # the /ask router agent (triage_agent); default model
     model_handbook: str | None = None
     model_research: str | None = None
     # ADR-0011 (2026-11-13): the scope classifier on gpt-5-nano let 9/30 out-of-scope questions
