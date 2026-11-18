@@ -397,3 +397,21 @@ Azure Container Registry + Container Apps with OIDC; needs paid-service decision
   
   Prompt sentences alone did not hold for gpt-5-nano.
 - **Small pilots are noisy.** The same 6 items gave different failures from run to run. Decide model upgrades (constitution VI.2) on the full 135-item run, not on a pilot.
+
+## 16. Session 4 — what `make up` and the last runs taught
+- **Run the images, not just build them.**
+  - CI built 4 images green for days, yet agent-service crashed on start, because `httpx` was imported but not declared.
+  - The CI now smoke-imports each entry module inside its image.
+- **Timeouts must fit the slowest real call.**
+  - A gpt-5-mini /triage takes 2–6 min, but the gateway → agent timeout was 180 s.
+  - It is now 900 s and configurable.
+- **Containers calling the host meet host-header defences.**
+  - The handbook (ksor) rejected `Host: host.docker.internal` with 421.
+  - The fix is configuration (`KSOR_ALLOWED_HOSTS`), not code.
+  - Node on WSL also still needs the `NODE_OPTIONS` IPv4 fallback to reach Neon.
+- **The biggest quality gain came from a domain rule, not a bigger model.**
+  - The handbook's needs-info definition, put into the triage prompt, lifted TP recall from 3/21 to 8/21.
+  - The model upgrade alone (R6b) left TP recall unchanged.
+- **Record delegated approvals honestly.**
+  - `verified_by = naveed-delegated` is not the same as `naveed`.
+  - Builders keep the approvals across rebuilds.
