@@ -417,3 +417,12 @@ def test_triage_prompt_states_the_handbook_verdict_rule(tmp_path: Path) -> None:
     text = str(app.triage_entry.instructions)
     assert "Verdict criteria" in text and "DECIDING evidence" in text
     assert "missing_info as next steps" in text
+
+
+def test_reviewer_prompt_accepts_not_in_record_and_labelled_web_answers() -> None:
+    """R6a (2026-11-18): 8/10 research blocks were the nano reviewer rejecting answers our rules
+    allow (not_in_record: true, or 'unverified web source (<url>)')."""
+    from agent_service.agents_build import REVIEWER
+
+    assert "not_in_record: true" in REVIEWER and "unverified web source (<url>)" in REVIEWER
+    assert "never reject for these" in REVIEWER
