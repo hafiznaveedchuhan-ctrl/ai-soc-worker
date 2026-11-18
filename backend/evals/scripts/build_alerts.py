@@ -1419,6 +1419,15 @@ def main() -> None:
         )
         if s.context:
             contexts.append({"alert_id": s.aid, "analyst_context": s.context})
+    # keep the human verification across rebuilds (a rebuild must never erase an approval)
+    old_path = DATA / "labels.csv"
+    if old_path.exists():
+        with old_path.open(encoding="utf-8", newline="") as f:
+            old = {r["alert_id"]: r for r in csv.DictReader(f)}
+        for r in labels:
+            prev = old.get(r["alert_id"])
+            if prev:
+                r["verified_by"], r["verified_at"] = prev["verified_by"], prev["verified_at"]
     for name, rows in (("labels.csv", labels), ("context.csv", contexts)):
         with (DATA / name).open("w", encoding="utf-8", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=list(rows[0]))

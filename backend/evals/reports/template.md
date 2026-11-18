@@ -8,7 +8,7 @@
 | Models | $models |
 | Run note | $note |
 | Dataset | $dataset_sizes |
-| Labels verified by Naveed | $verified |
+| Labels verified (by Naveed or delegated by him) | $verified |
 
 > Every rate is written as **count / set size = percent**. Unverified labels are drafts.
 

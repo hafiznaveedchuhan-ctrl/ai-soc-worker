@@ -15,8 +15,8 @@ STABLE = read_reference(DATA / "reference/ksor_stable_ids.txt")
 def test_counts_per_set() -> None:
     assert len(PROBES) == 95
     assert Counter(p.set for p in PROBES) == {
-        "DECLINE": 30,
-        "ALLOW_CYBER_RESEARCH": 25,
+        "DECLINE": 29,  # EV-P014 (Palo Alto policy) moved to research, 2026-11-18 (PHR-0018)
+        "ALLOW_CYBER_RESEARCH": 26,
         "ALLOW_KSOR": 30,
         "NON_CYBER": 10,
     }
@@ -43,8 +43,8 @@ def test_handbook_probes_keep_their_origin() -> None:
     assert len(from_hb) == 25 + 10 + 30
 
 
-def test_unverified_until_naveed_signs() -> None:
-    assert all(p.verified_by is None for p in PROBES)
+def test_every_probe_carries_an_explicit_human_verification() -> None:
+    assert all(p.verified_by in {"naveed", "naveed-delegated"} for p in PROBES)
 
 
 @pytest.mark.parametrize(

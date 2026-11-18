@@ -76,5 +76,7 @@ def test_hygiene_only_lab_values() -> None:
     assert all(e.endswith((".example", ".lab")) for e in emails), emails
 
 
-def test_all_labels_unverified_until_naveed_signs() -> None:
-    assert all(not lab.verified for lab in LABELS)
+def test_every_label_carries_an_explicit_human_verification() -> None:
+    """2026-11-18: Naveed approved all labels by delegation (PHR-0018) — recorded honestly."""
+    assert all(lab.verified_by in {"naveed", "naveed-delegated"} for lab in LABELS)
+    assert all(lab.verified_at is not None for lab in LABELS)
