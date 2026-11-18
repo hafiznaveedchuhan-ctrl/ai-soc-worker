@@ -134,6 +134,17 @@ async def triage_input_guard(
     )  # raw data must never reach the model
 
 
+def normalize_url(url: str) -> str:
+    """Compare URLs by meaning, not spelling: case of scheme/host, a trailing slash, a #fragment
+    and trailing punctuation do not make a different page (P4: 9 research answers blocked)."""
+    u = url.strip().rstrip(").,;").split("#", 1)[0]
+    scheme, sep, rest = u.partition("://")
+    if not sep:
+        return u.rstrip("/")
+    host, slash, path = rest.partition("/")
+    return f"{scheme.lower()}://{host.lower()}{slash}{path}".rstrip("/")
+
+
 # ------------------------------------------------------------------ 2 OUTPUT review
 HANDOFF_RE = re.compile(
     r"\s*(transferring|handing (you )?(off|over)|i(?: will|'ll| am going to) (transfer|hand))\b",
@@ -156,9 +167,14 @@ def review_problems(output: TriageNote | AskAnswer, ctx: WorkerContext) -> list[
     invented = [c for c in citations if c not in ctx.seen_stable_ids]
     if invented:
         problems.append(f"cites pages KSOR did not return: {invented}")
-    web = [str(w.url) for w in output.web_sources]
-    if any(u not in ctx.web_urls for u in web):
-        problems.append("cites web sources that web_search did not return")
+    returned = {normalize_url(u) for u in ctx.web_urls}
+    unknown = [str(w.url) for w in output.web_sources if normalize_url(str(w.url)) not in returned]
+    if unknown:
+        # name them (public URLs) so a failed run is diagnosable (P4, 2026-11-18)
+        problems.append(
+            "cites web sources that web_search did not return: "
+            + ", ".join(u[:120] for u in unknown[:3])
+        )
     if isinstance(output, TriageNote):
         allowed = set(ctx.alert_mitre)
         for sid in ctx.seen_stable_ids:
