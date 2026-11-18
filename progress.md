@@ -4,70 +4,71 @@ Protocol: `CLAUDE.md` §1. Plan of record: `specs/00-final-plan.txt` (v2). Const
 **Append-only:** add a new session block at the bottom; never delete or edit an old (closed) block.
 Only the "READ ME FIRST" box below is rewritten in place, every session.
 
-> ## READ ME FIRST — HANDOFF after SESSIONS 2–3 (rewritten 2026-11-13; next = SESSION 4)
+> ## READ ME FIRST — HANDOFF after SESSION 4 (rewritten 2026-11-18; next = SESSION 5)
 >
 > ### A. One-line status
-> **Features 01–11 are coded and merged** (PRs #1–#25). 354 tests pass, coverage ≈ 93.6%, CI green.
-> **Feature 11 (live eval)** wires `soc_evals paid` to the real flows. The paid run is safe:
-> - two keys are needed (`--yes-paid` + `CONFIRM=haan`);
-> - the run cap is $1.50, the per-item budget $0.05, the ledger $9;
-> - the journal is written per item and `--resume` continues an interrupted run;
-> - every failure carries its reason in the Diagnostics.
+> **Features 01–11 are coded; PRs #1–#35 are merged, #36 is open.** 366 tests pass, coverage ≈ 94%.
 >
-> Four paid pilots plus one diagnostic run found and fixed 12 live-only bugs (T11-09…24).
-> **R5 (the full 135-item run, gpt-5-nano) was started on 2026-11-13 05:50Z** (Naveed "haan"), detached:
-> - journal `backend/evals/recordings/paid/2026-11-13-0550-3ad7c88-*.jsonl`;
-> - log `/tmp/claude-1000/-home-naveed-ai-soc-soc-worker/r5-run.log`.
+> **Feature 11 (live eval) runs:**
+> - two-key guard, cap, per-item journal, `--resume`;
+> - `--concurrency 5`;
+> - `--item-timeout`;
+> - a Diagnostics section and a "how to read the rates" note in the report.
 >
-> Ledger before R5: $0.0765.
+> **Paid runs done:**
+> - R5 baseline: 135 items, all gpt-5-nano;
+> - P1: probe re-run;
+> - P2: **ADR-0011, scope_classifier → gpt-5-mini**;
+> - P3: ADR-0002 prompt + Tavily;
+> - P4: research re-run.
 >
-> ### B. How to START session 4 (Claude: do exactly this)
+> Ledger: **$0.97**. Billed by OpenAI: about $0, because gpt-5-nano is on the incentivized tier (Naveed's dashboard).
+>
+> **Scope now (P3):**
+> - DECLINE **29/30 = 97%** ✅ (target 90%)
+> - KSOR 26/30
+> - RESEARCH 19/25
+> - false declines 3/55 ✅
+> - exact decline text 100%
+> - real leaks 0
+>
+> **Triage (R5, nano):** TP recall 3/21. gpt-5-nano says needs_info too often. This is the next upgrade candidate.
+>
+> ### B. How to START session 5 (Claude)
 > 1. Read this box, then the bottom block.
-> 2. `git fetch && git checkout main && git pull`, then `git status` and `git log --oneline -3`.
-> 3. **R5 check:**
->    - is it still running? `pgrep -f 'soc_evals paid'`;
->    - how far did it get? `wc -l backend/evals/recordings/paid/2026-11-13-0550-3ad7c88-*.jsonl`;
->    - ledger: `cat backend/.agent-ledger.json`.
->    
->    If it stopped before 135 items, ask Naveed for "haan", then run `cd backend && make eval CONFIRM=haan RESUME=2026-11-13-0550-3ad7c88` detached (`setsid nohup … &`).
->    Do NOT switch branches in this folder while a run is going; use `git worktree` for docs.
-> 4. `cd backend && uv sync --all-packages && make check` → `354 passed`.
-> 5. Tell Naveed 3 Roman-Urdu lines: where we are / what waits on him (D) / the next step (C).
-> 6. **Push guard** (ALWAYS). Push AND `gh pr create` go INSIDE the if-block:
->    `M="$(gh pr list --head "$B" --state merged)"; if [ -z "$M" ]; then git push … && gh pr create …; fi`.
->    `gh` exits 0 even when it finds a merged PR. Naveed merges within minutes, so expect it, and cherry-pick onto a new branch from origin/main.
+> 2. `git fetch && git checkout main && git pull`, then `git status`.
+> 3. `cd backend && uv sync --all-packages && make check` → `366 passed`.
+> 4. Tell Naveed 3 Roman-Urdu lines.
+> 5. **Push guard (always).** Push AND `gh pr create` go INSIDE `M="$(gh pr list --head "$B" --state merged)"; if [ -z "$M" ]; then …; fi`.
+> 6. **Paid runs.** Start them detached with `setsid nohup … &`; watch with `pgrep -f '[p]ython3 -m soc_evals paid'` (the bracket stops it matching itself); use `--concurrency 5`; and ask Naveed for "haan" first, every time.
+>    Before committing a journal, gate on the raw-IP grep. CIDR names like `10.0.0.0/8` are fine.
 >
-> ### C. Remaining work (in order)
+> ### C. Remaining work
 > | # | Task | Who | State |
 > |---|---|---|---|
-> | R1/R2 | live /ask and /triage | — | **done** (through the pilots) |
-> | R3 | fix the live problems | Claude | **done** (T11-09…24) |
-> | R4 | `soc_evals paid` | Claude | **done** (feature 11) |
-> | R5 | full paid run (135 items) | Claude runs, Naveed said "haan" | **running / check §B3** |
-> | R6 | analyse R5 → fix, or ADR-0011 to upgrade ONE agent (e.g. note_reviewer or triage → gpt-5-mini) | Claude + Naveed | after R5 |
-> | R7 | Neon `make db-upgrade CONFIRM=haan` | Naveed "haan" | open |
-> | R8 | Docker Desktop WSL integration → `make up` | Naveed | open |
-> | R9 | Auth0 | Naveed | open (optional) |
-> | R10 | first GHCR release | Naveed "haan" | open |
-> | R11 | DoD check | Claude + Naveed | `specs/DOD-CHECK.md` (5/9 ✅) |
+> | R6a | Merge #36 (URL repair + URL normalization) → re-run the 25 research probes (~$0.10) | Naveed merge + "haan" | next |
+> | R6b | **ADR-0012: triage_coordinator → gpt-5-mini**, then re-run the 40 alerts (~$1.2, cap $2.50; may be real money) | plan .txt → Naveed | after R6a |
+> | R6c | Maybe later: note_reviewer → gpt-5-mini (many false positives in R5/P4) | data decides | later |
+> | R7–R10 | Neon, Docker `make up`, Auth0, GHCR | Naveed | open |
+> | R11 | `specs/DOD-CHECK.md` | Claude + Naveed | 5/9 ✅ |
 >
 > ### D. Waiting on Naveed
-> 1. Rotate the OpenAI and Anthropic keys; set the $10 limit (Naveed says there is credit).
-> 2. Label review: `backend/evals/review/labels-review.md` (0/40 + 0/95).
-> 3. Verify VERIFY.md 02–11 (only 01 is verified).
-> 4. R7, R8, R9, R10.
-> 5. Optional: Tavily and AbuseIPDB free keys.
+> 1. **Rotate the Tavily key that was pasted in chat** (and the old OpenAI/Anthropic keys).
+> 2. **Label review**, especially:
+>    - EV-P014 (Palo Alto = DECLINE vs Cisco ASA = research: an ADR-0002 inconsistency);
+>    - the research/KSOR border (honeytoken, LAPS, Zeek, AMSI, DoH);
+>    - EV-P066 and EV-P075.
+> 3. Verify VERIFY.md 02–11.
+> 4. R7–R10.
 >
-> ### E. Facts (in addition to the session-1 facts below)
-> - **Spend:** pilots + diagnostics + the lost first R5 attempt = $0.0765 before R5. Measured: ~$0.004–0.012 and 2–9 min per alert; ~$0.001 per allowed probe.
-> - **Live-only lessons** (LEARNING §14–15):
->   - no `format: uri` in output schemas;
->   - `env_ignore_empty`;
->   - one corrective retry, fed rule messages only;
->   - `policy_hints`;
->   - `tool_choice` to force the first search;
->   - the reviewer sees the citations and the masked context.
-> - **Session-1 facts:** versions, ports, `.env` rules, commands — see the session-1 FINAL HANDOFF block below.
+> ### E. Facts
+> - **Models:** scope = gpt-5-mini (ADR-0011). Everything else is gpt-5-nano (ADR-0003).
+> - **OpenAI:** usage CSV and screenshots are in `openai expense/` (gitignored, private).
+> - **Live-only lessons:** see LEARNING §14–15 and `specs/11-live-eval/tasks.md` T11-09…33. They include:
+>   - the SDK reserves `tool_choice="web_search"` for its hosted tool;
+>   - `as_tool` needs hooks;
+>   - catch every exception;
+>   - a timeout per item.
 
 ---
 
@@ -490,6 +491,72 @@ PHRs: 0014, 0015, 0016, 0017. ADR: 0010 (accepted, updated).
 
 ## Exact next step for the next session
 Box §B3: finish or resume R5, then analyse it (Diagnostics) → the R6 plan (.txt) → Naveed "approved".
+
+## Naveed's manual actions needed
+See the box, section D.
+
+
+---
+
+## Session 4 — 2026-11-13 (late) / 2026-11-18
+
+## Last updated (ISO date-time, session number)
+2026-11-18 · session 4
+
+## Done this session (items + files + commit hashes)
+
+| PR | What |
+|---|---|
+| #25 | resumable runs |
+| #26 | progress |
+| #27 | `as_tool` sub-agents priced (the ledger was about 1/3 low; checked against the OpenAI CSV) |
+| #28 | research `tool_choice` web_search → "required" |
+| #29 | R5 report + R6 plan |
+| #30 | no exception escapes the flows; report states the real leaks |
+| #31 | P1 + P2 plan / ADR-0011 |
+| #32 | **ADR-0011 scope → gpt-5-mini** |
+| #33 | P2 results; one report per journal |
+| #34 | the scope prompt follows ADR-0002; eval drafts go to a temp dir |
+| #35 | `--concurrency`, `--item-timeout` |
+| #36 (open) | URLs repaired out of citations; P3/P4 results; normalized URL check |
+
+## Current state (feature table 01–10: not started / intent / spec / plan / tasks / implementing / verified)
+- 01 is verified.
+- 02–11 are implemented, with VERIFY filled.
+- 11: the scope target is met in P3. Triage quality is open (R6b).
+
+## Decisions taken (link ADRs)
+- **ADR-0011:** scope_classifier → gpt-5-mini. Accepted, and its result is recorded.
+- **"jo best lga wo kro":**
+  - the labels are NOT changed (they come from ADR-0002 and the handbook);
+  - the prompt is aligned with them;
+  - the eval drafts are deleted.
+
+## Errors hit + fixes
+1. The first R5 attempt was lost with the session → resumable, detached runs.
+2. The ledger undercounted (as_tool) → hooks.
+3. `tool_choice` "web_search" gave HTTP 400 → "required"; a test now runs the real SDK converter.
+4. The watcher matched itself → `[p]ython3`.
+5. P3 hung on one HTTP call → a timeout per item.
+6. URLs ended up in citations → a deterministic repair.
+7. The URL check was exact-string → normalized.
+
+## Pending / blocked (reason + who acts: Naveed or Claude)
+See the box, sections C and D.
+
+## Eval results so far (numbers)
+
+| Run | Model setup | DECLINE | KSOR | RESEARCH | False declines | Leaks | $ |
+|---|---|---|---|---|---|---|---|
+| R5 | nano | 21/30 | 18/30 | — | 2/55 | 0 | 0.32 |
+| P2 | scope = mini | 26/30 | 27/30 | 19/25 | 1/55 | — | 0.18 |
+| P3 | + ADR-0002 prompt + Tavily | 29/30 | 26/30 | 19/25 | 3/55 | 0 | 0.19 |
+| P4 | research only | — | — | 23/25 label; 11 ok, 11 blocked (9 = URL check, fixed in #36) | — | — | 0.11 |
+
+Triage (R5): TP recall 3/21, precision 3/3, verdict accuracy 8/40.
+
+## Exact next step for the next session
+R6a: merge #36, then (with "haan") re-run the 25 research probes. Then write the ADR-0012 plan for triage.
 
 ## Naveed's manual actions needed
 See the box, section D.
