@@ -157,3 +157,42 @@ class TestSmallModels:
     def test_unknown_field_forbidden(self) -> None:
         with pytest.raises(ValidationError):
             MaskedAlert(alert_id="1", rule_id="1", rule_level=1, payload={}, raw_ip="x")  # type: ignore[call-arg]
+
+
+def test_url_written_into_citations_is_moved_to_web_sources() -> None:
+    """P3 (2026-11-13): gpt-5-nano put 'unverified web source (<url>)' into citations 12 times."""
+    import json
+
+    from soc_shared.models import AskAnswer
+
+    a = AskAnswer.model_validate_json(
+        json.dumps(
+            {
+                "answer": "Honeytokens are decoys (unverified web source (https://attack.mitre.org/x/)).",
+                "scope": "ALLOW_CYBER_RESEARCH",
+                "citations": [
+                    "unverified web source (https://attack.mitre.org/x/)",
+                    "knowledge/windows-events/event-4625",
+                ],
+                "web_sources": [],
+                "confidence": 0.4,
+            }
+        )
+    )
+    assert a.citations == ["knowledge/windows-events/event-4625"]
+    assert [w.url for w in a.web_sources] == ["https://attack.mitre.org/x/"]
+
+
+def test_a_non_url_bad_citation_is_still_rejected() -> None:
+    import pytest
+    from soc_shared.models import AskAnswer
+
+    with pytest.raises(ValueError, match="not a KSOR stable_id"):
+        AskAnswer.model_validate(
+            {
+                "answer": "x",
+                "scope": "ALLOW_KSOR",
+                "citations": ["event 4625 page"],
+                "confidence": 0.5,
+            }
+        )

@@ -383,3 +383,28 @@ def test_scope_prompt_declines_the_adr0002_wave1_categories() -> None:
         assert phrase in decline, phrase
     # the ADR-0002 near-miss rule is kept: vendor configuration concepts stay research
     assert "vendor configuration" in SCOPE.split("DECLINE —", 1)[0]
+
+
+# ------------------------------------------------------------------ P4 (2026-11-18)
+def test_web_source_check_ignores_spelling_but_names_unknown_urls() -> None:
+    from agent_service.context import WorkerContext
+    from agent_service.guardrails import normalize_url, review_problems
+    from soc_shared.models import AskAnswer
+
+    assert normalize_url("HTTPS://Attack.MITRE.org/techniques/T1558/003/#x") == normalize_url(
+        "https://attack.mitre.org/techniques/T1558/003"
+    )
+    ctx = WorkerContext.__new__(WorkerContext)  # only the fields review_problems reads
+    ctx.mask_map, ctx.seen_stable_ids = __import__("soc_shared.masking").masking.MaskMap(), set()
+    ctx.web_urls = {"https://attack.mitre.org/techniques/T1558/003"}
+    ok = AskAnswer(
+        answer="Kerberoasting (unverified web source (https://attack.mitre.org/)).",
+        scope="ALLOW_CYBER_RESEARCH",
+        web_sources=[{"url": "https://attack.mitre.org/techniques/T1558/003/"}],
+        confidence=0.4,
+    )
+    assert not [p for p in review_problems(ok, ctx) if "web_search" in p]
+    bad = ok.model_copy(update={"web_sources": [{"url": "https://learn.microsoft.com/made-up"}]})
+    bad = AskAnswer.model_validate(bad.model_dump())
+    probs = [p for p in review_problems(bad, ctx) if "web_search" in p]
+    assert probs and "https://learn.microsoft.com/made-up" in probs[0]
