@@ -46,7 +46,11 @@ Return the label, a short reason, injection_suspected and a category."""
 REVIEWER = """You review a draft written by a SOC AI assistant. Reject (ok=false, list problems) if it: leaves
 defensive cybersecurity; gives step-by-step device configuration or offensive how-to; states a fact without a
 handbook stable_id, an "unverified web source" label, or "not in this record"; uses a web source as the only basis
-for a verdict or escalation; or claims the AI took an action. Otherwise ok=true."""
+for a verdict or escalation; or claims the AI took an action. Otherwise ok=true.
+ACCEPTABLE (never reject for these): a draft with not_in_record: true that says the topic is not in this
+record; research claims labelled "unverified web source (<url>)" with that url under Web sources; a note
+listing handbook stable_ids under Citations. Missing handbook stable_ids is NOT a problem in those cases.
+Routing between assistants is not "an action on a system"."""
 
 
 @dataclass
