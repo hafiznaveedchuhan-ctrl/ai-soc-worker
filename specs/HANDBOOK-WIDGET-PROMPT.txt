@@ -1,0 +1,85 @@
+=== PROMPT FOR THE HANDBOOK CLAUDE CODE SESSION (copy everything below this line) ===
+
+FEATURE: "SOC Analyst Assistant" — a stylish chat widget + Auth0 login inside the SOC handbook site.
+Owner and only approver: Naveed (human:naveed). Follow THIS repo's own CLAUDE.md / SDD rules:
+INTENT → spec → plan → tasks (written as a .txt file) → STOP for my "approved" → build task by task → VERIFY → PR.
+Explain to me in short, simple Roman Urdu; write code and docs in English.
+
+------------------------------------------------------------------------------------------------
+1. WHAT I WANT (INTENT)
+------------------------------------------------------------------------------------------------
+- A floating chat widget on every handbook page (bottom-right launcher button → a slide-in panel).
+  It must look modern and professional (SOC / dark-friendly theme, smooth animation, a mobile-friendly
+  full-screen panel, light AND dark mode that follows the site theme, accessible: keyboard, focus, ARIA).
+- Login with Auth0 (Universal Login, PKCE, "@auth0/auth0-react" or the SPA SDK, whichever fits this site's
+  framework — check the CURRENT docs before coding, never guess an API). Logged-out users see a
+  "Sign in to ask the SOC assistant" state. Logged-in users see their email, a role badge
+  (analyst / admin) and a Sign out button.
+- Two modes in the widget:
+  (a) "Ask" — a chat about SOC L1 topics, streamed answers, citations shown as clickable links to the
+      handbook pages (each citation is a stable_id such as knowledge/windows-events/event-4625 →
+      map it to this site's page URL);
+  (b) "Triage" — the user enters an alert id (for now EV-A001 … EV-A040), optional analyst context;
+      the widget shows the returned triage note and three human-decision buttons:
+      Approve / Change (with a comment) / Escalate. The AI only suggests; the human decides.
+
+------------------------------------------------------------------------------------------------
+2. THE BACKEND IT TALKS TO (already built, do NOT change it from here — it lives in ../soc-worker)
+------------------------------------------------------------------------------------------------
+Base URL: env var (e.g. PUBLIC_SOC_API_URL); local default http://127.0.0.1:8000
+Auth: "Authorization: Bearer <Auth0 access token>" on every call except /health.
+  Auth0 tenant (public, not secret): dev-78jlhsubimuljjjn.us.auth0.com
+  API audience: https://soc-worker-api
+  The gateway reads the user's role from the token claim "https://soc-worker/roles" (["analyst"] or
+  ["admin"]). No role → HTTP 403 "no soc-worker role assigned". Show a friendly message for that.
+  (Naveed will add the Auth0 post-login Action that puts the role into the token.)
+Endpoints:
+  GET  /health                         → {"status":"ok"}
+  GET  /me                             → {"id", "sub", "email", "role"}
+  POST /ask   body {"question": str (1–4000), "conversation_id"?: str}
+              → Server-Sent Events (text/event-stream). Events:
+                event: status  data: {"conversation_id", "status":"thinking"}
+                event: final   data: {"status", "request_id", "conversation_id",
+                                      "answer": {"answer", "scope", "citations":[stable_id…],
+                                                 "web_sources":[{"url","title"}], "not_in_record", "confidence"}}
+                event: done    data: [DONE]
+              Keep conversation_id and send it back for follow-up questions.
+              A declined question returns this exact answer text — show it as-is:
+              "This is a SOC Analyst Lab. Please ask only cybersecurity-related questions. JazakAllah."
+              Web sources must be labelled "unverified web source".
+              Use fetch() + a stream reader (EventSource cannot send POST or the Authorization header).
+  POST /triage/{alert_id}  body {"analyst_context": str, "approve_escalation_ticket": false}
+              → {"note_id", "status", "alert_id", "note_text", "note", "tickets", "final_decision_by":"human"}
+              Takes 2–6 minutes: show a clear progress state, allow cancel, never auto-retry.
+  GET  /notes, GET /notes/{note_id}
+  POST /notes/{note_id}/decision  body {"action": "approve"|"change"|"escalate", "comment"?: str}
+Errors to handle with friendly UI: 401 (sign in again), 403 (no role), 402 (budget reached),
+  429 (rate limited, retry later), 5xx (try again).
+CORS: the gateway allows the origins in its CORS_ORIGINS env (default https://ai-soc-handbook.vercel.app).
+  Tell me the exact local dev origin of this site so I can add it on the backend side.
+
+------------------------------------------------------------------------------------------------
+3. HARD RULES
+------------------------------------------------------------------------------------------------
+- NEVER put a secret in the frontend or in git. The Auth0 SPA client ID and domain are public; there is NO
+  client secret in a SPA. Use env vars for domain / client id / audience / API URL; add a .env.example with names only.
+- Never ask me to paste a key in chat. If I paste one, tell me to rotate it.
+- No paid call without my "haan" (every /ask or /triage call costs OpenAI money on the backend).
+  Build and test with a MOCK of the API (recorded SSE + JSON fixtures) first; tests must be offline.
+- Do not weaken the existing site (search, pages, build). The widget must lazy-load so page speed stays good.
+- Read-only: do not modify ../soc-worker. If the backend needs a change, write it down for me.
+- Check every library API in the current docs (Context7 / official) before using it, and note which doc you checked.
+- Small commits, a feature branch, PR as ready-for-review when VERIFY.md is filled; I merge.
+
+------------------------------------------------------------------------------------------------
+4. DONE WHEN
+------------------------------------------------------------------------------------------------
+- Logged out: the launcher shows; clicking it shows the sign-in state; Sign in → Auth0 → back to the same page.
+- Logged in: Ask streams an answer with clickable handbook citations; follow-ups keep the conversation.
+- Triage: the note renders readably; Approve / Change / Escalate call the decision endpoint and show the result.
+- All error states (401/403/402/429/5xx/network) have clear UI.
+- Light + dark mode, mobile, keyboard-only use all work. Build passes; tests (offline, mocked API) pass.
+- VERIFY.md has screenshots or real output; a short "how to run locally" section; the CORS origin I must add.
+
+Start by reading this repo's CLAUDE.md and progress files, then give me the plan as a .txt file and STOP.
+=== END OF PROMPT ===
