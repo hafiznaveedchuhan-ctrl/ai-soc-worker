@@ -10,7 +10,7 @@ from typing import Any, Protocol
 import jwt
 from fastapi import HTTPException
 
-ROLES = ("analyst", "admin")
+ROLES = ("user", "analyst", "admin")  # "user" = signed in, no SOC role (ADR-0013)
 
 
 @dataclass(frozen=True)
@@ -39,7 +39,7 @@ class Authenticator:
     def authenticate(self, authorization: str | None, dev_user: str | None) -> Principal:
         if self.mode == "dev":
             if not dev_user:
-                raise HTTPException(401, "dev mode: send X-Dev-User: <id>[:analyst|admin]")
+                raise HTTPException(401, "dev mode: send X-Dev-User: <id>[:user|analyst|admin]")
             sub, _, role = dev_user.partition(":")
             return Principal(
                 sub=f"dev|{sub}", email=None, role=role if role in ROLES else "analyst"
@@ -64,7 +64,7 @@ class Authenticator:
                 401, f"invalid token: {type(exc).__name__}", headers={"WWW-Authenticate": "Bearer"}
             ) from exc
         roles = claims.get(self.role_claim) or []
-        role = "admin" if "admin" in roles else "analyst" if "analyst" in roles else ""
-        if not role:
-            raise HTTPException(403, "no soc-worker role assigned")
+        # A signed-in person WITHOUT a SOC role is a plain "user"; they may read the handbook via
+        # /ask (ADR-0013, Naveed 2026-11-21). Triage, notes and decisions stay analyst/admin only.
+        role = "admin" if "admin" in roles else "analyst" if "analyst" in roles else "user"
         return Principal(sub=str(claims["sub"]), email=claims.get("email"), role=role)

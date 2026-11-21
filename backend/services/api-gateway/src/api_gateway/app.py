@@ -122,6 +122,15 @@ def create_app(
             raise HTTPException(429, "rate limit: too many requests per minute")
         return user
 
+    def soc_staff(user: User = Depends(current_user)) -> User:
+        """Triage, notes and decisions: analyst or admin only (ADR-0013). /ask and /me: any user."""
+        if user.role not in ("analyst", "admin"):
+            raise HTTPException(403, "this action needs the analyst role")
+        return user
+
+    def staff_limited(user: User = Depends(soc_staff)) -> User:
+        return limited(user)
+
     def store_run(s: Session, data: dict[str, Any]) -> dict[str, str]:
         rid = data["request_id"]
         for u in data.get("usage", []):
@@ -232,7 +241,10 @@ def create_app(
 
     @app.post("/triage/{alert_id}")
     async def triage(
-        alert_id: str, body: TriageIn, user: User = Depends(limited), s: Session = Depends(session)
+        alert_id: str,
+        body: TriageIn,
+        user: User = Depends(staff_limited),
+        s: Session = Depends(session),
     ) -> dict[str, Any]:
         if not re.fullmatch(r"[A-Za-z0-9._-]{1,64}", alert_id):
             raise HTTPException(422, "invalid alert id")
@@ -290,7 +302,7 @@ def create_app(
 
     @app.get("/notes")
     def notes(
-        user: User = Depends(current_user), s: Session = Depends(session), limit: int = 50
+        user: User = Depends(soc_staff), s: Session = Depends(session), limit: int = 50
     ) -> list[dict[str, Any]]:
         q = select(TriageNoteRow).order_by(TriageNoteRow.id.desc()).limit(min(max(limit, 1), 200))  # type: ignore[union-attr]
         if user.role != "admin":
@@ -310,7 +322,7 @@ def create_app(
 
     @app.get("/notes/{note_id}")
     def note_detail(
-        note_id: int, user: User = Depends(current_user), s: Session = Depends(session)
+        note_id: int, user: User = Depends(soc_staff), s: Session = Depends(session)
     ) -> dict[str, Any]:
         row = visible(s, user, note_id)
         decisions = s.exec(select(DecisionRow).where(DecisionRow.note_id == note_id)).all()
@@ -337,7 +349,10 @@ def create_app(
 
     @app.post("/notes/{note_id}/decision")
     def decide(
-        note_id: int, body: DecisionIn, user: User = Depends(limited), s: Session = Depends(session)
+        note_id: int,
+        body: DecisionIn,
+        user: User = Depends(staff_limited),
+        s: Session = Depends(session),
     ) -> dict[str, Any]:
         row = visible(s, user, note_id)
         d = DecisionRow(

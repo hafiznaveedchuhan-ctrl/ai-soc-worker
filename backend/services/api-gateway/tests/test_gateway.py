@@ -253,8 +253,13 @@ async def test_auth0_jwt_validation(tmp_path: Path) -> None:
             await c.get("/me", headers={"Authorization": f"Bearer {token_for(other_key)}"})
         ).status_code == 401
         no_role = token_for(private, **{"https://soc-worker/roles": []})
+        me = await c.get("/me", headers={"Authorization": f"Bearer {no_role}"})
+        assert me.status_code == 200 and me.json()["role"] == "user"  # ADR-0013
         assert (
-            await c.get("/me", headers={"Authorization": f"Bearer {no_role}"})
+            await c.post("/triage/EV-A003", json={}, headers={"Authorization": f"Bearer {no_role}"})
+        ).status_code == 403  # triage stays analyst/admin only
+        assert (
+            await c.get("/notes", headers={"Authorization": f"Bearer {no_role}"})
         ).status_code == 403
         assert (
             await c.get("/me", headers=DEV)
